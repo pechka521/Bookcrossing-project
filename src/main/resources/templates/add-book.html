@@ -3,57 +3,485 @@
 <head th:replace="~{fragments/layout :: head('Добавить книгу')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<div class="container d-flex align-items-center justify-content-center" style="min-height: 90vh;">
-    <div class="row justify-content-center w-100">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Новая книга</h4>
-                </div>
-                <div class="card-body">
-                    <form th:action="@{/add-book}" th:object="${book}" method="post" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Название книги *</label>
-                            <input type="text" th:field="*{title}" class="form-control" required>
-                            <div class="text-danger" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Err</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Автор *</label>
-                            <input type="text" th:field="*{author}" class="form-control" required>
-                            <div class="text-danger" th:if="${#fields.hasErrors('author')}" th:errors="*{author}">Err</div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Жанр *</label>
-                            <select th:field="*{genre}" class="form-select" required>
-                                <option value="" disabled selected>Выберите жанр</option>
-                                <option th:each="g : ${genres}"
-                                        th:value="${g.name()}"
-                                        th:text="${g.displayValue}"></option>
-                            </select>
-                        </div>
+<style>
+    /* ═══════════════════════════════════════════════════
+       Страница добавления книги — Editorial style
+       ═══════════════════════════════════════════════════ */
 
-                        <div class="mb-3">
-                            <label class="form-label">Обложка книги (Файл)</label>
-                            <input type="file" name="coverFile" class="form-control" accept="image/*">
-                            <div class="form-text">Загрузите изображение с компьютера (jpg, png)</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Или ссылка на обложку (URL)</label>
-                            <input type="url" th:field="*{imageUrl}" class="form-control" placeholder="https://example.com/image.jpg">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Описание</label>
-                            <textarea th:field="*{description}" class="form-control" rows="3"></textarea>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Опубликовать</button>
-                        </div>
-                    </form>
-                </div>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    .add-page {
+        min-height: 100vh;
+        background: #f8f7f4;
+        position: relative;
+        padding: 0 0 80px;
+    }
+
+    /* Горизонтальная полоса сверху */
+    .add-page::before {
+        content: '';
+        display: block;
+        height: 4px;
+        background: linear-gradient(90deg, #2d3a8c, #7c3aed, #db2777);
+    }
+
+    .add-header {
+        background: #fff;
+        border-bottom: 1px solid #ececec;
+        padding: 20px 0;
+        margin-bottom: 40px;
+    }
+    .add-header-inner {
+        max-width: 900px; margin: 0 auto; padding: 0 24px;
+        display: flex; align-items: center; gap: 16px;
+    }
+    .back-link {
+        color: #94a3b8; text-decoration: none;
+        font-size: .85rem; font-family: 'DM Sans', sans-serif;
+        display: flex; align-items: center; gap: 5px;
+        transition: color .2s;
+    }
+    .back-link:hover { color: #2d3a8c; }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.6rem; font-weight: 700;
+        color: #1a1a2e; margin: 0; line-height: 1;
+    }
+    .page-subtitle {
+        font-family: 'DM Sans', sans-serif;
+        font-size: .85rem; color: #94a3b8; margin: 4px 0 0;
+    }
+
+    /* Основная сетка */
+    .add-grid {
+        max-width: 900px; margin: 0 auto; padding: 0 24px;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+    @media (max-width: 700px) {
+        .add-grid { grid-template-columns: 1fr; }
+        .cover-column { order: 1; }
+        .form-column { order: 2; }
+    }
+
+    /* ── Колонка обложки ── */
+    .cover-column { position: sticky; top: 24px; }
+
+    .cover-upload-area {
+        aspect-ratio: 2/3;
+        background: #fff;
+        border-radius: 18px;
+        border: 2px dashed #d1d5db;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        cursor: pointer; transition: all .25s;
+        overflow: hidden; position: relative;
+    }
+    .cover-upload-area:hover { border-color: #2d3a8c; background: #f0f1ff; }
+    .cover-upload-area.has-image { border-style: solid; border-color: #e2e8f0; }
+    .cover-upload-area img { width:100%; height:100%; object-fit:cover; display:block; }
+    .cover-placeholder { text-align: center; padding: 24px; pointer-events: none; }
+    .cover-placeholder .icon { font-size: 3rem; display: block; margin-bottom: 10px; opacity: .5; }
+    .cover-placeholder p { font-family: 'DM Sans', sans-serif; font-size: .82rem; color: #94a3b8; margin: 0; }
+
+    .cover-edit-badge {
+        position: absolute; bottom: 10px; right: 10px;
+        background: rgba(0,0,0,.55); color: #fff;
+        border-radius: 8px; padding: 4px 10px;
+        font-size: .72rem; font-family: 'DM Sans', sans-serif;
+        backdrop-filter: blur(4px); pointer-events: none;
+        opacity: 0; transition: opacity .2s;
+    }
+    .cover-upload-area.has-image:hover .cover-edit-badge { opacity: 1; }
+
+    /* ── Колонка формы ── */
+    .form-column {}
+
+    .form-card {
+        background: #fff; border-radius: 20px;
+        padding: 28px 28px; margin-bottom: 16px;
+        border: 1px solid #ececec;
+        box-shadow: 0 1px 4px rgba(0,0,0,.03);
+    }
+    .card-section-title {
+        font-family: 'DM Sans', sans-serif;
+        font-size: .7rem; font-weight: 600; letter-spacing: .1em;
+        text-transform: uppercase; color: #94a3b8;
+        margin-bottom: 18px; padding-bottom: 10px;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    /* Поля */
+    .field-group { margin-bottom: 18px; }
+    .field-label {
+        font-family: 'DM Sans', sans-serif;
+        font-size: .78rem; font-weight: 600; color: #374151;
+        display: block; margin-bottom: 6px;
+    }
+    .field-label .required { color: #ef4444; margin-left: 2px; }
+    .field-hint { font-size: .72rem; color: #94a3b8; margin-top: 4px; }
+
+    .form-input, .form-select-custom, .form-textarea {
+        width: 100%; font-family: 'DM Sans', sans-serif;
+        background: #fafafa; border: 1.5px solid #e5e7eb;
+        border-radius: 12px; padding: 11px 14px;
+        font-size: .9rem; color: #1a1a2e;
+        transition: border-color .2s, box-shadow .2s, background .2s;
+        outline: none;
+    }
+    .form-input:focus, .form-select-custom:focus, .form-textarea:focus {
+        border-color: #2d3a8c;
+        box-shadow: 0 0 0 3px rgba(45,58,140,.1);
+        background: #fff;
+    }
+    .form-input.is-invalid, .form-textarea.is-invalid { border-color: #ef4444; }
+    .form-input.is-valid   { border-color: #22c55e; }
+
+    .form-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+    /* Жанры — кастомные кнопки */
+    .genre-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px; margin-top: 6px;
+    }
+    .genre-btn {
+        appearance: none; display: none;
+    }
+    .genre-label {
+        display: block; text-align: center; padding: 8px 6px;
+        background: #fafafa; border: 1.5px solid #e5e7eb;
+        border-radius: 10px; font-size: .78rem; font-family: 'DM Sans', sans-serif;
+        font-weight: 500; color: #374151; cursor: pointer;
+        transition: all .15s; user-select: none;
+    }
+    .genre-label:hover { border-color: #2d3a8c; color: #2d3a8c; background: #f0f1ff; }
+    .genre-btn:checked + .genre-label {
+        background: linear-gradient(135deg, #2d3a8c, #7c3aed);
+        border-color: transparent; color: #fff;
+        box-shadow: 0 2px 8px rgba(45,58,140,.3);
+    }
+
+    /* Статус */
+    .status-toggle { display: flex; gap: 10px; }
+    .status-option { flex: 1; }
+    .status-option input[type="radio"] { display: none; }
+    .status-label {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 11px 10px; border-radius: 12px;
+        border: 1.5px solid #e5e7eb; font-family: 'DM Sans', sans-serif;
+        font-size: .85rem; font-weight: 500; color: #374151;
+        cursor: pointer; transition: all .15s;
+    }
+    .status-label:hover { border-color: #2d3a8c; }
+    .status-option input:checked + .status-label.free-label {
+        background: #f0fdf4; border-color: #22c55e; color: #15803d;
+        box-shadow: 0 2px 8px rgba(34,197,94,.2);
+    }
+    .status-option input:checked + .status-label.busy-label {
+        background: #fef2f2; border-color: #ef4444; color: #dc2626;
+        box-shadow: 0 2px 8px rgba(239,68,68,.2);
+    }
+
+    /* Кнопка отправки */
+    .submit-btn {
+        width: 100%; padding: 15px;
+        background: linear-gradient(135deg, #2d3a8c, #7c3aed);
+        color: #fff; border: none; border-radius: 14px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 1rem; font-weight: 600;
+        cursor: pointer; transition: opacity .2s, transform .1s;
+        box-shadow: 0 4px 20px rgba(45,58,140,.35);
+        letter-spacing: .02em;
+    }
+    .submit-btn:hover { opacity: .92; transform: translateY(-1px); }
+    .submit-btn:active { transform: scale(.99); }
+
+    /* Счётчики и подсказки */
+    .char-counter { font-size: .7rem; color: #94a3b8; text-align: right; margin-top: 3px; }
+    .char-counter.warn { color: #f59e0b; }
+    .char-counter.over { color: #ef4444; }
+
+    /* Прогресс заполнения */
+    .fill-progress { margin-bottom: 20px; }
+    .fill-bar-bg { height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
+    .fill-bar { height: 100%; background: linear-gradient(90deg, #2d3a8c, #7c3aed); border-radius: 2px; transition: width .4s; }
+    .fill-label { font-size: .75rem; color: #94a3b8; margin-top: 5px; font-family: 'DM Sans', sans-serif; }
+
+    /* Ошибка */
+    .alert-error {
+        background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 14px;
+        padding: 12px 16px; font-size: .85rem; color: #dc2626;
+        margin-bottom: 20px; font-family: 'DM Sans', sans-serif;
+    }
+</style>
+
+<div class="add-page">
+    <div class="add-header">
+        <div class="add-header-inner">
+            <a href="/my-books" class="back-link">← Назад</a>
+            <div>
+                <h1 class="page-title">Поделиться книгой</h1>
+                <p class="page-subtitle">Добавьте книгу в каталог и дайте ей новую жизнь</p>
             </div>
         </div>
     </div>
+
+    <div class="add-grid">
+
+        <!-- ── Колонка обложки ── -->
+        <div class="cover-column">
+            <div class="cover-upload-area" id="coverArea"
+                 onclick="document.getElementById('coverFile').click()"
+                 title="Нажмите, чтобы загрузить обложку">
+                <div class="cover-placeholder" id="coverPlaceholder">
+                    <span class="icon">📸</span>
+                    <p>Загрузите обложку</p>
+                    <p style="margin-top:4px; font-size:.72rem;">JPEG, PNG, WebP — до 5 МБ</p>
+                </div>
+                <img id="coverPreviewImg" src="" alt="" style="display:none;">
+                <div class="cover-edit-badge">✏️ Изменить</div>
+            </div>
+            <div id="coverError" class="field-hint" style="color:#ef4444;margin-top:6px;display:none;"></div>
+
+            <!-- Подсказка о заполнении -->
+            <div class="fill-progress mt-4">
+                <div class="fill-bar-bg"><div class="fill-bar" id="fillBar" style="width:0%"></div></div>
+                <div class="fill-label" id="fillLabel">Заполните поля формы</div>
+            </div>
+        </div>
+
+        <!-- ── Колонка формы ── -->
+        <div class="form-column">
+
+            <!-- Ошибки валидации -->
+            <div th:if="${error}" class="alert-error">
+                ⚠️ <span th:text="${error}"></span>
+            </div>
+
+            <form th:action="@{/add-book}" method="post"
+                  enctype="multipart/form-data" novalidate id="addBookForm">
+
+                <!-- Обложка (hidden) -->
+                <input type="file" id="coverFile" name="coverFile"
+                       accept="image/jpeg,image/png,image/webp"
+                       style="display:none;" onchange="handleCoverChange(this)">
+
+                <!-- ══ Основная информация ══ -->
+                <div class="form-card">
+                    <div class="card-section-title">Основная информация</div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="title">
+                            Название <span class="required">*</span>
+                        </label>
+                        <input type="text" id="title" name="title" class="form-input"
+                               th:value="${book.title}"
+                               placeholder="Введите название книги"
+                               maxlength="200" required
+                               oninput="updateProgress()">
+                        <div class="char-counter"><span id="titleCount">0</span> / 200</div>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="author">
+                            Автор <span class="required">*</span>
+                        </label>
+                        <input type="text" id="author" name="author" class="form-input"
+                               th:value="${book.author}"
+                               placeholder="Фамилия Имя Отчество"
+                               maxlength="150" required
+                               oninput="updateProgress()">
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label" for="description">Описание</label>
+                        <textarea id="description" name="description" class="form-textarea"
+                                  th:text="${book.description}"
+                                  placeholder="О чём эта книга? Поделитесь впечатлениями..."
+                                  maxlength="2000" rows="4"
+                                  oninput="updateCounters(); updateProgress();"></textarea>
+                        <div class="char-counter"><span id="descCount">0</span> / 2000</div>
+                    </div>
+                </div>
+
+                <!-- ══ Жанр ══ -->
+                <div class="form-card">
+                    <div class="card-section-title">Жанр книги</div>
+                    <div class="genre-grid" id="genreGrid">
+                        <div th:each="genre : ${genres}">
+                            <input type="radio" class="genre-btn"
+                                   th:id="'genre_' + ${genre.name()}"
+                                   name="genre"
+                                   th:value="${genre.name()}"
+                                   th:checked="${book.genre != null and book.genre == genre.name()}"
+                                   onchange="updateProgress()">
+                            <label class="genre-label"
+                                   th:for="'genre_' + ${genre.name()}"
+                                   th:text="${genre.displayValue}">Жанр</label>
+                        </div>
+                    </div>
+                    <input type="hidden" name="genreFallback" id="genreFallback">
+                    <div class="field-hint mt-2" id="genreHint" style="display:none;color:#ef4444;">Выберите жанр</div>
+                </div>
+
+                <!-- ══ Доступность ══ -->
+                <div class="form-card">
+                    <div class="card-section-title">Доступность книги</div>
+                    <div class="status-toggle">
+                        <div class="status-option">
+                            <input type="radio" id="statusFree" name="status" value="FREE" checked>
+                            <label class="status-label free-label" for="statusFree">
+                                <span>🟢</span> Свободна
+                            </label>
+                        </div>
+                        <div class="status-option">
+                            <input type="radio" id="statusBusy" name="status" value="BUSY"
+                                   th:checked="${book.status != null and book.status.name() == 'BUSY'}">
+                            <label class="status-label busy-label" for="statusBusy">
+                                <span>🔴</span> Занята
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ Кнопка ══ -->
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    📚 Добавить в каталог
+                </button>
+
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    // ── Обложка ────────────────────────────────────────────
+    function handleCoverChange(input) {
+        var errEl = document.getElementById('coverError');
+        errEl.style.display = 'none';
+        if (!input.files || !input.files[0]) return;
+        var file = input.files[0];
+
+        if (file.size > 5 * 1024 * 1024) {
+            errEl.textContent = 'Файл слишком большой (максимум 5 МБ)';
+            errEl.style.display = 'block';
+            input.value = '';
+            return;
+        }
+        var allowed = ['image/jpeg','image/png','image/webp'];
+        if (!allowed.includes(file.type)) {
+            errEl.textContent = 'Разрешены только JPEG, PNG, WebP';
+            errEl.style.display = 'block';
+            input.value = '';
+            return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img   = document.getElementById('coverPreviewImg');
+            var ph    = document.getElementById('coverPlaceholder');
+            var area  = document.getElementById('coverArea');
+            img.src   = e.target.result;
+            img.style.display = 'block';
+            ph.style.display  = 'none';
+            area.classList.add('has-image');
+            updateProgress();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Drag & drop
+    var coverArea = document.getElementById('coverArea');
+    ['dragenter','dragover'].forEach(function(ev) {
+        coverArea.addEventListener(ev, function(e) { e.preventDefault(); coverArea.style.borderColor='#2d3a8c'; });
+    });
+    ['dragleave','drop'].forEach(function(ev) {
+        coverArea.addEventListener(ev, function(e) {
+            e.preventDefault(); coverArea.style.borderColor='';
+            if (ev === 'drop' && e.dataTransfer.files.length) {
+                var fi = document.getElementById('coverFile');
+                fi.files = e.dataTransfer.files;
+                handleCoverChange(fi);
+            }
+        });
+    });
+
+    // ── Счётчики символов ─────────────────────────────────
+    function updateCounters() {
+        var title = document.getElementById('title');
+        var desc  = document.getElementById('description');
+        var tc = document.getElementById('titleCount');
+        var dc = document.getElementById('descCount');
+        if (title && tc) tc.textContent = title.value.length;
+        if (desc  && dc) dc.textContent = desc.value.length;
+
+        // Предупреждение
+        if (desc) {
+            var l = desc.value.length;
+            var counter = desc.parentElement.querySelector('.char-counter');
+            if (counter) counter.className = 'char-counter' + (l > 1800 ? ' warn' : '') + (l >= 2000 ? ' over' : '');
+        }
+    }
+    document.getElementById('title').addEventListener('input', updateCounters);
+    document.getElementById('description').addEventListener('input', updateCounters);
+
+    // ── Прогресс заполнения ───────────────────────────────
+    function updateProgress() {
+        var title   = document.getElementById('title').value.trim();
+        var author  = document.getElementById('author').value.trim();
+        var desc    = document.getElementById('description').value.trim();
+        var cover   = document.getElementById('coverPreviewImg').style.display !== 'none';
+        var genre   = document.querySelector('.genre-btn:checked');
+
+        var total = 5, done = 0;
+        if (title)  done++;
+        if (author) done++;
+        if (desc)   done++;
+        if (cover)  done++;
+        if (genre)  done++;
+
+        var pct = Math.round(done / total * 100);
+        document.getElementById('fillBar').style.width = pct + '%';
+
+        var labels = ['', 'Добавьте ещё немного', 'Неплохое начало!', 'Почти готово!', 'Отлично!', 'Форма заполнена ✓'];
+        document.getElementById('fillLabel').textContent = labels[done] || '';
+    }
+
+    // ── Валидация формы ───────────────────────────────────
+    document.getElementById('addBookForm').addEventListener('submit', function(e) {
+        var title  = document.getElementById('title').value.trim();
+        var author = document.getElementById('author').value.trim();
+
+        var ok = true;
+        if (!title) {
+            document.getElementById('title').classList.add('is-invalid');
+            ok = false;
+        } else document.getElementById('title').classList.remove('is-invalid');
+
+        if (!author) {
+            document.getElementById('author').classList.add('is-invalid');
+            ok = false;
+        } else document.getElementById('author').classList.remove('is-invalid');
+
+        if (!ok) { e.preventDefault(); return; }
+
+        // Анимация кнопки
+        var btn = document.getElementById('submitBtn');
+        btn.textContent = '⏳ Добавляем...';
+        btn.disabled = true;
+    });
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCounters();
+        updateProgress();
+    });
+</script>
+
 </body>
 </html>

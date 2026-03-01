@@ -5,7 +5,7 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <style>
-    .mod-wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+    .mod-wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; }
     .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
     .stat-card  { background:#fff; border-radius:14px; padding:16px 18px;
         border:1px solid #e5e7eb; text-align:center; }
@@ -31,17 +31,17 @@
         color:#6b7280; transition:all .2s; text-decoration:none; }
     .filter-btn.active, .filter-btn:hover { background:#3b5bdb; color:#fff; border-color:#3b5bdb; }
 
-    .badge-status-PENDING  { background:#fef3c7; color:#d97706; }
-    .badge-status-ACCEPTED { background:#dcfce7; color:#16a34a; }
-    .badge-status-REJECTED { background:#fee2e2; color:#dc2626; }
+    .badge-PENDING  { background:#fef3c7; color:#d97706; }
+    .badge-ACCEPTED { background:#dcfce7; color:#16a34a; }
+    .badge-REJECTED { background:#fee2e2; color:#dc2626; }
 </style>
 
-<div class="mod-wrap">
-    <h2 style="font-size:1.4rem;font-weight:700;color:#1a1a2e;margin-bottom:20px;">
-        🛡️ Панель модератора
-    </h2>
+<!-- CSRF meta для JS -->
+<meta name="_csrf" th:content="${_csrf.token}">
 
-    <!-- Flash -->
+<div class="mod-wrap">
+    <h2 style="font-size:1.4rem;font-weight:700;color:#1a1a2e;margin-bottom:20px;">🛡️ Панель модератора</h2>
+
     <div th:if="${success}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
         <span th:text="${success}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -67,111 +67,128 @@
         </div>
     </div>
 
-    <!-- Фильтр по статусу -->
-    <div class="status-filter">
-        <a th:href="@{/moderator}"
-           class="filter-btn" th:classappend="${selectedStatus == null} ? 'active' : ''">
-            Все
-        </a>
-        <a th:each="s : ${statuses}"
-           th:href="@{/moderator(status=${s.name()})}"
-           class="filter-btn"
-           th:classappend="${s.name() == selectedStatus} ? 'active' : ''"
-           th:text="${s.displayName}">
-        </a>
+    <!-- Фильтры жалоб -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <!-- Фильтр по статусу (серверный) -->
+        <div class="status-filter mb-0">
+            <a th:href="@{/moderator}" class="filter-btn"
+               th:classappend="${selectedStatus == null} ? 'active' : ''">Все</a>
+            <a th:each="s : ${statuses}"
+               th:href="@{/moderator(status=${s.name()})}"
+               class="filter-btn"
+               th:classappend="${s.name() == selectedStatus} ? 'active' : ''"
+               th:text="${s.displayName}"></a>
+        </div>
+        <!-- Сортировка (JS) -->
+        <select id="cmpSortTime" class="form-select form-select-sm w-auto ms-auto" onchange="applyComplaintFilters()">
+            <option value="desc">🕐 Сначала новые</option>
+            <option value="asc">🕐 Сначала старые</option>
+        </select>
+        <select id="cmpSortAlpha" class="form-select form-select-sm w-auto" onchange="applyComplaintFilters()">
+            <option value="">— По автору —</option>
+            <option value="az">А → Я</option>
+            <option value="za">Я → А</option>
+        </select>
+        <span id="cmpCount" class="badge bg-secondary rounded-pill">0</span>
+        <button class="btn btn-outline-secondary btn-sm rounded-pill" onclick="resetComplaintFilters()">Сбросить</button>
     </div>
 
     <!-- Таблица жалоб -->
     <table class="data-table">
         <thead>
         <tr>
-            <th>#</th>
-            <th>Дата</th>
-            <th>Автор жалобы</th>
-            <th>Объект</th>
-            <th>Тип</th>
-            <th>Описание</th>
-            <th>Статус</th>
-            <th>Действия</th>
+            <th>#</th><th>Дата</th><th>От кого</th><th>Книга</th>
+            <th>Тип</th><th>Описание</th><th>Статус</th><th>Действия</th>
         </tr>
         </thead>
-        <tbody>
-        <tr th:each="c : ${complaints}">
+        <tbody id="cmpTableBody">
+        <tr th:each="c : ${complaints}"
+            th:data-time="${c.createdAt}"
+            th:data-author="${c.author != null ? c.author.username : ''}">
             <td th:text="${c.id}" class="text-muted"></td>
             <td class="text-muted small"
-                th:text="${#temporals.format(c.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
-            <td th:text="'@' + ${c.author.username}"></td>
-            <td>
-                    <span th:if="${c.targetBookTitle != null}"
-                          class="small" th:text="'«' + ${c.targetBookTitle} + '»'"></span>
-                <span th:if="${c.targetUser != null}"
-                      class="small" th:text="'@' + ${c.targetUser.username}"></span>
-            </td>
-            <td>
-                    <span class="badge bg-light text-dark border small"
-                          th:text="${c.type.displayName}"></span>
-            </td>
+                th:text="${#temporals.format(c.createdAt, 'dd.MM HH:mm')}"></td>
+            <td th:text="'@' + ${c.author != null ? c.author.username : '—'}"></td>
+            <td class="small fw-semibold" th:text="${c.targetBookTitle}"></td>
+            <td><span class="badge bg-light text-dark border small"
+                      th:text="${c.type.displayName}"></span></td>
             <td class="small text-muted"
-                style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                 th:text="${c.description}"></td>
             <td>
                     <span class="badge rounded-pill px-3 py-1 small"
-                          th:classappend="'badge-status-' + ${c.status.name()}"
+                          th:classappend="'badge-' + ${c.status.name()}"
                           th:text="${c.status.displayName}"></span>
             </td>
             <td>
-                <div class="d-flex gap-1" th:if="${c.status.name() == 'PENDING'}">
-                    <button class="btn btn-sm btn-success rounded-pill px-3"
-                            onclick="openResolve(this, 'accept')"
+                <!-- Действия только для PENDING -->
+                <div th:if="${c.status.name() == 'PENDING'}" class="d-flex gap-1 flex-wrap">
+                    <!-- Уведомить автора -->
+                    <button class="btn btn-sm btn-outline-primary rounded-pill"
+                            onclick="openAction(this, 'notify')"
                             th:data-id="${c.id}"
-                            th:data-title="${c.targetBookTitle}">
-                        ✓ Принять
+                            th:data-title="${c.targetBookTitle}"
+                            title="Уведомить автора и дать шанс исправить">
+                        📩 Уведомить
                     </button>
-                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3"
-                            onclick="openResolve(this, 'reject')"
+                    <!-- Удалить книгу -->
+                    <button class="btn btn-sm btn-outline-danger rounded-pill"
+                            onclick="openAction(this, 'delete-book')"
                             th:data-id="${c.id}"
-                            th:data-title="${c.targetBookTitle}">
+                            th:data-title="${c.targetBookTitle}"
+                            title="Удалить книгу из каталога">
+                        🗑 Удалить
+                    </button>
+                    <!-- Отклонить жалобу -->
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill"
+                            onclick="openAction(this, 'reject')"
+                            th:data-id="${c.id}"
+                            th:data-title="${c.targetBookTitle}"
+                            title="Отклонить жалобу">
                         ✕ Отклонить
                     </button>
                 </div>
                 <span th:unless="${c.status.name() == 'PENDING'}"
                       class="text-muted small"
-                      th:text="${c.resolvedBy != null ? 'Решил: @' + c.resolvedBy.username : ''}"></span>
+                      th:text="${c.resolvedBy != null ? '@' + c.resolvedBy.username : ''}"></span>
             </td>
         </tr>
         <tr th:if="${complaints == null || complaints.empty}">
-            <td colspan="8" class="text-center text-muted py-4">
-                Жалоб нет
-            </td>
+            <td colspan="8" class="text-center text-muted py-4">Жалоб нет</td>
         </tr>
         </tbody>
     </table>
 
-    <!-- Журнал моих действий -->
-    <h4 class="mt-5 mb-3" style="font-size:1rem;font-weight:700;color:#1a1a2e;">
-        📋 Мои последние действия
-    </h4>
+    <!-- Журнал действий -->
+    <h4 class="mt-5 mb-3" style="font-size:1rem;font-weight:700;color:#1a1a2e;">📋 Мои последние действия</h4>
+    <div class="d-flex gap-2 flex-wrap align-items-center mb-2">
+        <select id="logSortTime" class="form-select form-select-sm w-auto" onchange="applyLogFilters()">
+            <option value="desc">🕐 Сначала новые</option>
+            <option value="asc">🕐 Сначала старые</option>
+        </select>
+        <select id="logFilterAction" class="form-select form-select-sm w-auto" onchange="applyLogFilters()">
+            <option value="">— Все действия —</option>
+            <option th:each="a : ${T(com.bookcrossing.model.ModerationLog.ActionType).values()}"
+                    th:value="${a.name()}" th:text="${a.displayName}"></option>
+        </select>
+        <span id="logCountBadge" class="badge bg-secondary rounded-pill">0</span>
+        <button class="btn btn-outline-secondary btn-sm rounded-pill ms-auto" onclick="resetLogFilters()">Сбросить</button>
+    </div>
     <table class="data-table">
         <thead>
-        <tr>
-            <th>Время</th>
-            <th>Действие</th>
-            <th>Цель</th>
-            <th>Причина</th>
-        </tr>
+        <tr><th>Время</th><th>Действие</th><th>Цель</th><th>Причина</th></tr>
         </thead>
-        <tbody>
-        <tr th:each="log : ${myLogs}">
+        <tbody id="logTableBody">
+        <tr th:each="log : ${myLogs}"
+            th:data-time="${log.createdAt}"
+            th:data-action="${log.action.name()}">
             <td class="text-muted small"
                 th:text="${#temporals.format(log.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
             <td><span class="badge bg-light text-dark border"
                       th:text="${log.action.displayName}"></span></td>
             <td>
-                    <span th:if="${log.targetUser != null}"
-                          th:text="'@' + ${log.targetUser.username}"></span>
-                <span th:if="${log.bookTitle != null}"
-                      class="text-muted small"
-                      th:text="'«' + ${log.bookTitle} + '»'"></span>
+                <span th:if="${log.targetUser != null}" th:text="'@' + ${log.targetUser.username}"></span>
+                <span th:if="${log.bookTitle != null}"  th:text="'«' + ${log.bookTitle} + '»'" class="text-muted small"></span>
             </td>
             <td class="text-muted small" th:text="${log.reason}"></td>
         </tr>
@@ -182,21 +199,25 @@
     </table>
 </div>
 
-<!-- Модал: принять / отклонить жалобу -->
-<div class="modal fade" id="resolveModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
+<!-- ══ Универсальный модал действия с жалобой ══ -->
+<div class="modal fade" id="actionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-body p-4">
-                <h5 class="fw-bold mb-1" id="resolveTitle">Обработать жалобу</h5>
-                <p class="text-muted small mb-3" id="resolveSubtitle"></p>
-                <form id="resolveForm" method="post">
-                    <textarea name="comment" rows="3" class="form-control mb-3"
-                              style="border-radius:10px;"
-                              placeholder="Комментарий (необязательно)"></textarea>
+                <h5 class="fw-bold mb-1" id="actionTitle">Действие</h5>
+                <p class="text-muted small mb-3" id="actionSubtitle"></p>
+                <!-- th:action задаётся через JS, CSRF через hidden input из meta -->
+                <form id="actionForm" method="post">
+                    <input type="hidden" name="_csrf" id="actionCsrf">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" id="actionCommentLabel">Комментарий</label>
+                        <textarea name="comment" rows="3" class="form-control"
+                                  style="border-radius:10px;"
+                                  id="actionTextarea"
+                                  placeholder="Необязательно..."></textarea>
+                    </div>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn rounded-pill" id="resolveBtn">
-                            Подтвердить
-                        </button>
+                        <button type="submit" class="btn rounded-pill" id="actionSubmitBtn">Подтвердить</button>
                         <button type="button" class="btn btn-outline-secondary rounded-pill"
                                 data-bs-dismiss="modal">Отмена</button>
                     </div>
@@ -207,30 +228,115 @@
 </div>
 
 <script>
-    function openResolve(btn, action) {
+    var csrf = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+
+    function openAction(btn, type) {
         var id    = btn.dataset.id;
         var title = btn.dataset.title || '—';
 
-        document.getElementById('resolveSubtitle').textContent = '«' + title + '»';
+        var form      = document.getElementById('actionForm');
+        var titleEl   = document.getElementById('actionTitle');
+        var subtitleEl= document.getElementById('actionSubtitle');
+        var submitBtn = document.getElementById('actionSubmitBtn');
+        var textarea  = document.getElementById('actionTextarea');
+        var labelEl   = document.getElementById('actionCommentLabel');
 
-        var form    = document.getElementById('resolveForm');
-        var titleEl = document.getElementById('resolveTitle');
-        var btnEl   = document.getElementById('resolveBtn');
+        document.getElementById('actionCsrf').value = csrf;
+        subtitleEl.textContent = '«' + title + '»';
 
-        if (action === 'accept') {
-            form.action = '/moderator/complaints/' + id + '/accept';
-            titleEl.textContent = '✓ Принять жалобу';
-            btnEl.className = 'btn btn-success rounded-pill';
-            btnEl.textContent = 'Принять';
-        } else {
+        if (type === 'notify') {
+            form.action = '/moderator/complaints/' + id + '/notify-author';
+            titleEl.textContent = '📩 Уведомить автора';
+            labelEl.textContent = 'Что нужно исправить (опционально)';
+            textarea.placeholder = 'Опишите, что нужно исправить автору...';
+            submitBtn.className  = 'btn btn-primary rounded-pill';
+            submitBtn.textContent= 'Уведомить автора';
+        } else if (type === 'delete-book') {
+            form.action = '/moderator/complaints/' + id + '/delete-book';
+            titleEl.textContent = '🗑 Удалить книгу из каталога';
+            labelEl.textContent = 'Причина удаления';
+            textarea.placeholder = 'Укажите причину удаления...';
+            submitBtn.className  = 'btn btn-danger rounded-pill';
+            submitBtn.textContent= 'Удалить книгу';
+        } else { // reject
             form.action = '/moderator/complaints/' + id + '/reject';
             titleEl.textContent = '✕ Отклонить жалобу';
-            btnEl.className = 'btn btn-danger rounded-pill';
-            btnEl.textContent = 'Отклонить';
+            labelEl.textContent = 'Причина отклонения';
+            textarea.placeholder = 'Почему жалоба отклонена...';
+            submitBtn.className  = 'btn btn-secondary rounded-pill';
+            submitBtn.textContent= 'Отклонить';
         }
-        new bootstrap.Modal(document.getElementById('resolveModal')).show();
-    }
-</script>
 
+        new bootstrap.Modal(document.getElementById('actionModal')).show();
+    }
+
+    // ── Фильтры жалоб ────────────────────────────────────────────────────────────
+    function applyComplaintFilters() {
+        var sortTime  = document.getElementById('cmpSortTime').value;
+        var sortAlpha = document.getElementById('cmpSortAlpha').value;
+        var tbody     = document.getElementById('cmpTableBody');
+        if (!tbody) return;
+        var rows      = Array.from(tbody.querySelectorAll('tr[data-time]'));
+
+        rows.sort(function(a, b) {
+            if (sortAlpha === 'az' || sortAlpha === 'za') {
+                var na = (a.getAttribute('data-author') || '').toLowerCase();
+                var nb = (b.getAttribute('data-author') || '').toLowerCase();
+                var cmp = na.localeCompare(nb, 'ru');
+                return sortAlpha === 'za' ? -cmp : cmp;
+            } else {
+                var ta = a.getAttribute('data-time') || '';
+                var tb = b.getAttribute('data-time') || '';
+                return sortTime === 'asc' ? ta.localeCompare(tb) : tb.localeCompare(ta);
+            }
+        });
+
+        rows.forEach(function(row) { tbody.appendChild(row); });
+        var countEl = document.getElementById('cmpCount');
+        if (countEl) countEl.textContent = rows.length;
+    }
+
+    function resetComplaintFilters() {
+        document.getElementById('cmpSortTime').value  = 'desc';
+        document.getElementById('cmpSortAlpha').value = '';
+        applyComplaintFilters();
+    }
+
+    // ── Фильтры лога действий ────────────────────────────────────────────────────
+    function applyLogFilters() {
+        var sortTime  = document.getElementById('logSortTime').value;
+        var filterAct = document.getElementById('logFilterAction').value;
+        var tbody     = document.getElementById('logTableBody');
+        if (!tbody) return;
+        var rows      = Array.from(tbody.querySelectorAll('tr[data-time]'));
+
+        rows.forEach(function(row) {
+            var action = row.getAttribute('data-action') || '';
+            row.style.display = (!filterAct || action === filterAct) ? '' : 'none';
+        });
+
+        var visible = rows.filter(function(r) { return r.style.display !== 'none'; });
+        visible.sort(function(a, b) {
+            var ta = a.getAttribute('data-time') || '';
+            var tb = b.getAttribute('data-time') || '';
+            return sortTime === 'asc' ? ta.localeCompare(tb) : tb.localeCompare(ta);
+        });
+        visible.forEach(function(row) { tbody.appendChild(row); });
+
+        var countEl = document.getElementById('logCountBadge');
+        if (countEl) countEl.textContent = visible.length;
+    }
+
+    function resetLogFilters() {
+        document.getElementById('logSortTime').value     = 'desc';
+        document.getElementById('logFilterAction').value = '';
+        applyLogFilters();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        applyComplaintFilters();
+        applyLogFilters();
+    });
+</script>
 </body>
 </html>

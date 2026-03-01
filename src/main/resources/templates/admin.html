@@ -4,6 +4,10 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
+<!-- Прячем CSRF-токен в meta-тегах — JS будет их читать -->
+<meta name="_csrf"        th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
+
 <style>
   .admin-wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; }
   .admin-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
@@ -19,8 +23,7 @@
   .stat-card .stat-label{ font-size:.8rem; color:#9ca3af; margin-top:2px; }
 
   .data-table { width:100%; border-collapse:collapse; background:#fff;
-    border-radius:14px; overflow:hidden;
-    box-shadow:0 1px 4px rgba(0,0,0,.06); }
+    border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); }
   .data-table thead { background:#f9fafb; }
   .data-table th, .data-table td { padding:12px 16px; text-align:left;
     border-bottom:1px solid #f3f4f6; font-size:.88rem; }
@@ -30,9 +33,9 @@
   .data-table tbody tr:last-child td { border-bottom:none; }
 
   .badge-role { padding:3px 10px; border-radius:50px; font-size:.72rem; font-weight:600; }
-  .badge-admin { background:#fef3c7; color:#d97706; }
-  .badge-mod   { background:#dbeafe; color:#2563eb; }
-  .badge-user  { background:#f3f4f6; color:#6b7280; }
+  .badge-admin   { background:#fef3c7; color:#d97706; }
+  .badge-mod     { background:#dbeafe; color:#2563eb; }
+  .badge-user    { background:#f3f4f6; color:#6b7280; }
   .badge-blocked { background:#fee2e2; color:#dc2626; }
 
   .search-bar { display:flex; gap:8px; margin-bottom:16px; }
@@ -49,7 +52,6 @@
     🛡️ Панель администратора
   </h2>
 
-  <!-- Flash -->
   <div th:if="${success}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
     <span th:text="${success}"></span>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -59,7 +61,6 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 
-  <!-- Статистика -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-num" th:text="${users != null ? users.size() : 0}">0</div>
@@ -75,33 +76,22 @@
     </div>
   </div>
 
-  <!-- Табы -->
   <div class="admin-tabs">
-    <a href="#" class="admin-tab active" onclick="showTab('books',this)">📚 Книги</a>
-    <a href="#" class="admin-tab"        onclick="showTab('users',this)">👥 Пользователи</a>
-    <a href="#" class="admin-tab"        onclick="showTab('logs',this)">📋 Лог действий</a>
+    <a href="#" class="admin-tab active" onclick="showTab('books',this);return false;">📚 Книги</a>
+    <a href="#" class="admin-tab"        onclick="showTab('users',this);return false;">👥 Пользователи</a>
+    <a href="#" class="admin-tab"        onclick="showTab('logs',this);return false;">📋 Лог действий</a>
   </div>
 
-  <!-- ══ Раздел: КНИГИ ══ -->
+  <!-- ══ Книги ══ -->
   <div id="tab-books" class="panel-section active">
     <form th:action="@{/admin}" method="get" class="search-bar">
-      <input type="text" name="query" placeholder="Поиск по названию или автору..."
-             th:value="${query}">
+      <input type="text" name="query" placeholder="Поиск..." th:value="${query}">
       <button type="submit" class="btn btn-primary rounded-pill px-4">Найти</button>
       <a th:if="${query}" th:href="@{/admin}" class="btn btn-outline-secondary rounded-pill">Сброс</a>
     </form>
-
     <table class="data-table">
       <thead>
-      <tr>
-        <th>#</th>
-        <th>Название</th>
-        <th>Автор</th>
-        <th>Жанр</th>
-        <th>Статус</th>
-        <th>Владелец</th>
-        <th>Действия</th>
-      </tr>
+      <tr><th>#</th><th>Название</th><th>Автор</th><th>Жанр</th><th>Статус</th><th>Владелец</th><th>Действие</th></tr>
       </thead>
       <tbody>
       <tr th:each="book : ${books}">
@@ -111,18 +101,22 @@
         <td th:text="${book.genre}"></td>
         <td>
                         <span class="badge"
-                              th:classappend="${book.status.name() == 'FREE'} ? 'bg-success' : 'bg-warning text-dark'"
+                              th:classappend="${book.status.name() == 'FREE'} ? 'bg-success' : (${book.status.name() == 'BOOKED'} ? 'bg-primary' : 'bg-warning text-dark')"
                               th:text="${book.status.displayValue}"></span>
         </td>
         <td th:text="'@' + ${book.owner.username}"></td>
         <td>
-          <button class="btn btn-sm btn-outline-danger"
-                  onclick="openDeleteBook(this)"
-                  th:data-id="${book.id}"
-                  th:data-title="${book.title}"
-                  th:data-owner="${book.owner.username}">
-            🗑 Удалить
-          </button>
+          <!-- Используем th:action чтобы Thymeleaf добавил CSRF автоматически -->
+          <form th:action="@{/admin/books/{id}/delete(id=${book.id})}"
+                method="post"
+                onsubmit="return confirmBookDelete(this, event);"
+                th:data-title="${book.title}">
+            <input type="text" name="reason" id="reason-input-inline"
+                   class="form-control form-control-sm d-inline w-auto me-1"
+                   placeholder="Причина (необяз.)"
+                   style="border-radius:8px;max-width:140px;">
+            <button type="submit" class="btn btn-sm btn-outline-danger">🗑 Удалить</button>
+          </form>
         </td>
       </tr>
       <tr th:if="${books == null || books.empty}">
@@ -132,18 +126,11 @@
     </table>
   </div>
 
-  <!-- ══ Раздел: ПОЛЬЗОВАТЕЛИ ══ -->
+  <!-- ══ Пользователи ══ -->
   <div id="tab-users" class="panel-section">
     <table class="data-table">
       <thead>
-      <tr>
-        <th>#</th>
-        <th>Пользователь</th>
-        <th>Email</th>
-        <th>Роль</th>
-        <th>Статус</th>
-        <th>Действия</th>
-      </tr>
+      <tr><th>#</th><th>Пользователь</th><th>Email</th><th>Роль</th><th>Статус</th><th>Действия</th></tr>
       </thead>
       <tbody>
       <tr th:each="user : ${users}">
@@ -151,8 +138,7 @@
         <td>
           <div class="d-flex align-items-center gap-2">
             <img th:src="${user.avatarDisplay}"
-                 style="width:28px;height:28px;border-radius:50%;object-fit:cover;"
-                 alt="">
+                 style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">
             <span th:text="'@' + ${user.username}"></span>
           </div>
         </td>
@@ -164,38 +150,39 @@
                               th:text="${user.role.name()}"></span>
         </td>
         <td>
-                        <span th:if="${user.currentlyBlocked}" class="badge-role badge-blocked">
-                            🔒 Заблокирован
-                        </span>
-          <span th:unless="${user.currentlyBlocked}" class="text-success small">
-                            ✓ Активен
-                        </span>
+          <span th:if="${user.currentlyBlocked}" class="badge-role badge-blocked">🔒 Заблок</span>
+          <span th:unless="${user.currentlyBlocked}" class="text-success small">✓ Активен</span>
         </td>
         <td>
           <div class="d-flex gap-1 flex-wrap">
-            <!-- Изменить роль -->
-            <button class="btn btn-sm btn-outline-primary"
-                    onclick="openRoleModal(this)"
-                    th:data-id="${user.id}"
-                    th:data-username="${user.username}"
-                    th:data-role="${user.role.name()}">
-              🎭 Роль
-            </button>
-            <!-- Блокировка / разблокировка -->
+            <!-- Изменить роль — th:action, CSRF автоматически -->
+            <form th:action="@{/admin/users/{id}/role(id=${user.id})}"
+                  method="post" class="d-inline">
+              <select name="role" class="form-select form-select-sm d-inline w-auto"
+                      style="border-radius:8px;"
+                      onchange="this.form.submit()">
+                <option th:value="'USER'"      th:selected="${user.role.name() == 'USER'}">USER</option>
+                <option th:value="'MODERATOR'" th:selected="${user.role.name() == 'MODERATOR'}">MODERATOR</option>
+                <option th:value="'ADMIN'"     th:selected="${user.role.name() == 'ADMIN'}">ADMIN</option>
+              </select>
+            </form>
+
+            <!-- Блокировать -->
             <button th:unless="${user.currentlyBlocked}"
                     class="btn btn-sm btn-outline-warning"
                     onclick="openBlockModal(this)"
                     th:data-id="${user.id}"
                     th:data-username="${user.username}">
-              🔒 Блок
+              🔒
             </button>
+
+            <!-- Разблокировать — th:action, CSRF автоматически -->
             <form th:if="${user.currentlyBlocked}"
                   th:action="@{/admin/users/{id}/unblock(id=${user.id})}"
-                  method="post" style="margin:0">
-              <button type="submit" class="btn btn-sm btn-outline-success">
-                🔓 Разблок
-              </button>
+                  method="post" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-success">🔓</button>
             </form>
+
             <!-- Удалить аккаунт -->
             <button class="btn btn-sm btn-outline-danger"
                     onclick="openDeleteUser(this)"
@@ -210,31 +197,45 @@
     </table>
   </div>
 
-  <!-- ══ Раздел: ЛОГ ══ -->
+  <!-- ══ Лог ══ -->
   <div id="tab-logs" class="panel-section">
+    <!-- Фильтры лога -->
+    <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+      <select id="logSortTime" class="form-select form-select-sm w-auto" onchange="applyLogFilters()">
+        <option value="desc">🕐 Сначала новые</option>
+        <option value="asc">🕐 Сначала старые</option>
+      </select>
+      <select id="logSortName" class="form-select form-select-sm w-auto" onchange="applyLogFilters()">
+        <option value="">— По модератору —</option>
+        <option value="az">А → Я</option>
+        <option value="za">Я → А</option>
+      </select>
+      <select id="logFilterAction" class="form-select form-select-sm w-auto" onchange="applyLogFilters()">
+        <option value="">— Все действия —</option>
+        <option th:each="a : ${T(com.bookcrossing.model.ModerationLog.ActionType).values()}"
+                th:value="${a.name()}" th:text="${a.displayName}"></option>
+      </select>
+      <span id="logCountBadge" class="badge bg-secondary rounded-pill ms-1">0</span>
+      <button class="btn btn-outline-secondary btn-sm rounded-pill ms-auto"
+              onclick="resetLogFilters()">Сбросить</button>
+    </div>
     <table class="data-table">
       <thead>
-      <tr>
-        <th>Время</th>
-        <th>Модератор</th>
-        <th>Действие</th>
-        <th>Цель</th>
-        <th>Причина</th>
-      </tr>
+      <tr><th>Время</th><th>Модератор</th><th>Действие</th><th>Цель</th><th>Причина</th></tr>
       </thead>
-      <tbody>
-      <tr th:each="log : ${logs}">
+      <tbody id="logTableBody">
+      <tr th:each="log : ${logs}"
+          th:data-time="${log.createdAt}"
+          th:data-mod="${log.moderator.username}"
+          th:data-action="${log.action.name()}">
         <td class="text-muted small"
             th:text="${#temporals.format(log.createdAt, 'dd.MM.yyyy HH:mm')}"></td>
         <td th:text="'@' + ${log.moderator.username}"></td>
         <td><span class="badge bg-light text-dark border"
                   th:text="${log.action.displayName}"></span></td>
         <td>
-                        <span th:if="${log.targetUser != null}"
-                              th:text="'@' + ${log.targetUser.username}"></span>
-          <span th:if="${log.bookTitle != null}"
-                class="text-muted small"
-                th:text="'«' + ${log.bookTitle} + '»'"></span>
+          <span th:if="${log.targetUser != null}" th:text="'@' + ${log.targetUser.username}"></span>
+          <span th:if="${log.bookTitle != null}"  th:text="'«' + ${log.bookTitle} + '»'" class="text-muted small"></span>
         </td>
         <td class="text-muted small" th:text="${log.reason}"></td>
       </tr>
@@ -246,29 +247,7 @@
   </div>
 </div>
 
-<!-- ══ Модал: удалить книгу ══ -->
-<div class="modal fade" id="delBookModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content border-0 shadow rounded-4">
-      <div class="modal-body text-center p-4">
-        <div style="font-size:2.5rem;">🗑️</div>
-        <h5 class="fw-bold mt-2">Удалить книгу?</h5>
-        <p class="text-muted small" id="delBookName"></p>
-        <form id="delBookForm" method="post">
-          <input type="text" name="reason" class="form-control mb-3"
-                 placeholder="Причина (необязательно)" style="border-radius:10px;">
-          <button type="submit" class="btn btn-danger rounded-pill w-100 mb-2">
-            Удалить
-          </button>
-        </form>
-        <button class="btn btn-outline-secondary rounded-pill w-100"
-                data-bs-dismiss="modal">Отмена</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ Модал: блокировка пользователя ══ -->
+<!-- ══ Модал блокировки — CSRF через hidden input ══ -->
 <div class="modal fade" id="blockModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow rounded-4">
@@ -276,6 +255,8 @@
         <h5 class="fw-bold mb-3">🔒 Заблокировать пользователя</h5>
         <p class="text-muted small mb-3" id="blockUserName"></p>
         <form id="blockForm" method="post">
+          <!-- CSRF токен читается из meta-тега и вставляется JS'ом -->
+          <input type="hidden" name="_csrf" id="blockCsrf">
           <div class="mb-3">
             <label class="form-label small fw-semibold">Причина блокировки</label>
             <textarea name="reason" rows="3" class="form-control" required
@@ -287,9 +268,7 @@
                    style="border-radius:10px;" placeholder="Например: 7">
           </div>
           <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-warning rounded-pill">
-              Заблокировать
-            </button>
+            <button type="submit" class="btn btn-warning rounded-pill">Заблокировать</button>
             <button type="button" class="btn btn-outline-secondary rounded-pill"
                     data-bs-dismiss="modal">Отмена</button>
           </div>
@@ -299,31 +278,7 @@
   </div>
 </div>
 
-<!-- ══ Модал: изменить роль ══ -->
-<div class="modal fade" id="roleModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content border-0 shadow rounded-4">
-      <div class="modal-body p-4">
-        <h5 class="fw-bold mb-3">🎭 Изменить роль</h5>
-        <p class="text-muted small" id="roleUserName"></p>
-        <form id="roleForm" method="post">
-          <select name="role" class="form-select mb-3" style="border-radius:10px;">
-            <option value="USER">USER</option>
-            <option value="MODERATOR">MODERATOR</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
-          <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary rounded-pill">Применить</button>
-            <button type="button" class="btn btn-outline-secondary rounded-pill"
-                    data-bs-dismiss="modal">Отмена</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ Модал: удалить аккаунт ══ -->
+<!-- ══ Модал удаления аккаунта — CSRF через hidden input ══ -->
 <div class="modal fade" id="delUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content border-0 shadow rounded-4">
@@ -332,6 +287,7 @@
         <h5 class="fw-bold mt-2">Удалить аккаунт?</h5>
         <p class="text-muted small" id="delUserName"></p>
         <form id="delUserForm" method="post">
+          <input type="hidden" name="_csrf" id="delUserCsrf">
           <input type="text" name="reason" class="form-control mb-3"
                  placeholder="Причина (необязательно)" style="border-radius:10px;">
           <button type="submit" class="btn btn-danger rounded-pill w-100 mb-2">
@@ -346,39 +302,87 @@
 </div>
 
 <script>
+  /* ── Читаем CSRF из meta ── */
+  var csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+
   function showTab(name, el) {
     document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     el.classList.add('active');
-    return false;
   }
 
-  function openDeleteBook(btn) {
-    document.getElementById('delBookName').textContent = '«' + btn.dataset.title + '» (@' + btn.dataset.owner + ')';
-    document.getElementById('delBookForm').action = '/admin/books/' + btn.dataset.id + '/delete';
-    new bootstrap.Modal(document.getElementById('delBookModal')).show();
+  function confirmBookDelete(form, e) {
+    var title = form.getAttribute('data-title');
+    return confirm('Удалить книгу «' + title + '»?');
   }
 
   function openBlockModal(btn) {
     document.getElementById('blockUserName').textContent = 'Пользователь: @' + btn.dataset.username;
     document.getElementById('blockForm').action = '/admin/users/' + btn.dataset.id + '/block';
+    document.getElementById('blockCsrf').value  = csrfToken;
     new bootstrap.Modal(document.getElementById('blockModal')).show();
-  }
-
-  function openRoleModal(btn) {
-    document.getElementById('roleUserName').textContent = 'Пользователь: @' + btn.dataset.username;
-    document.getElementById('roleForm').action = '/admin/users/' + btn.dataset.id + '/role';
-    var sel = document.querySelector('#roleForm select[name=role]');
-    sel.value = btn.dataset.role;
-    new bootstrap.Modal(document.getElementById('roleModal')).show();
   }
 
   function openDeleteUser(btn) {
     document.getElementById('delUserName').textContent = '@' + btn.dataset.username;
-    document.getElementById('delUserForm').action = '/admin/users/' + btn.dataset.id + '/delete';
+    document.getElementById('delUserForm').action      = '/admin/users/' + btn.dataset.id + '/delete';
+    document.getElementById('delUserCsrf').value       = csrfToken;
     new bootstrap.Modal(document.getElementById('delUserModal')).show();
   }
+
+  // ── Фильтры лога ─────────────────────────────────────────────────────────────
+  function applyLogFilters() {
+    var sortTime   = document.getElementById('logSortTime').value;
+    var sortName   = document.getElementById('logSortName').value;
+    var filterAct  = document.getElementById('logFilterAction').value;
+    var tbody      = document.getElementById('logTableBody');
+    var rows       = Array.from(tbody.querySelectorAll('tr[data-time]'));
+
+    // Фильтр по действию
+    rows.forEach(function(row) {
+      var action = row.getAttribute('data-action') || '';
+      row.style.display = (!filterAct || action === filterAct) ? '' : 'none';
+    });
+
+    // Сортировка
+    var visible = rows.filter(function(r) { return r.style.display !== 'none'; });
+
+    visible.sort(function(a, b) {
+      if (sortName === 'az' || sortName === 'za') {
+        var na = (a.getAttribute('data-mod') || '').toLowerCase();
+        var nb = (b.getAttribute('data-mod') || '').toLowerCase();
+        var cmp = na.localeCompare(nb, 'ru');
+        return sortName === 'za' ? -cmp : cmp;
+      } else {
+        var ta = a.getAttribute('data-time') || '';
+        var tb = b.getAttribute('data-time') || '';
+        return sortTime === 'asc' ? ta.localeCompare(tb) : tb.localeCompare(ta);
+      }
+    });
+
+    visible.forEach(function(row) { tbody.appendChild(row); });
+
+    // Счётчик
+    document.getElementById('logCountBadge').textContent = visible.length;
+  }
+
+  function resetLogFilters() {
+    document.getElementById('logSortTime').value    = 'desc';
+    document.getElementById('logSortName').value    = '';
+    document.getElementById('logFilterAction').value = '';
+    applyLogFilters();
+  }
+
+  // Инициализация при открытии вкладки лога
+  var _origShowTab = showTab;
+  showTab = function(name, el) {
+    _origShowTab(name, el);
+    if (name === 'logs') { setTimeout(applyLogFilters, 50); }
+  };
+  document.addEventListener('DOMContentLoaded', function() {
+    applyLogFilters();
+  });
 </script>
 
 </body>

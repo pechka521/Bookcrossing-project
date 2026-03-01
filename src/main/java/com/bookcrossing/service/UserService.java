@@ -15,10 +15,11 @@ import java.util.List;
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserRepository  userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository  = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -30,22 +31,19 @@ public class UserService {
 
     public User findById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден: id=" + id));
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден id=" + id));
     }
 
-    public List<User> findAll() {
-        return userRepository.findAll();
-    }
+    public List<User> findAll() { return userRepository.findAll(); }
 
-    public List<User> searchUsers(String query) {
-        if (query == null || query.isBlank()) return userRepository.findAll();
-        return userRepository.searchUsers(query);
+    public List<User> searchUsers(String q) {
+        return (q == null || q.isBlank()) ? userRepository.findAll()
+                : userRepository.searchUsers(q);
     }
 
     @Transactional
     public void register(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        // Первый зарегистрированный с ником "admin" сразу получает роль ADMIN
         if ("admin".equalsIgnoreCase(user.getUsername())) {
             user.setRole(User.UserRole.ADMIN);
         }
@@ -53,63 +51,79 @@ public class UserService {
     }
 
     @Transactional
-    public void updateProfile(User currentUser, User updatedData, MultipartFile avatarFile) {
-        currentUser.setFullName(updatedData.getFullName());
-        currentUser.setEmail(updatedData.getEmail());
-        currentUser.setCity(updatedData.getCity());
-        currentUser.setCountry(updatedData.getCountry());
-        currentUser.setGender(updatedData.getGender());
-        currentUser.setBirthDate(updatedData.getBirthDate());
-        currentUser.setAboutMe(updatedData.getAboutMe());
-        currentUser.setSocialLinks(updatedData.getSocialLinks());
-        currentUser.setFavoriteGenres(updatedData.getFavoriteGenres());
-
-        if (avatarFile != null && !avatarFile.isEmpty()) {
+    public void updateProfile(User current, User data, MultipartFile avatar) {
+        current.setFullName(data.getFullName());
+        current.setEmail(data.getEmail());
+        current.setCity(data.getCity());
+        current.setCountry(data.getCountry());
+        current.setGender(data.getGender());
+        current.setBirthDate(data.getBirthDate());
+        current.setAboutMe(data.getAboutMe());
+        current.setSocialLinks(data.getSocialLinks());
+        current.setFavoriteGenres(data.getFavoriteGenres());
+        if (avatar != null && !avatar.isEmpty()) {
             try {
-                String base64  = Base64.getEncoder().encodeToString(avatarFile.getBytes());
-                currentUser.setAvatarUrl("data:" + avatarFile.getContentType() + ";base64," + base64);
-            } catch (IOException e) {
-                throw new RuntimeException("Ошибка загрузки аватара", e);
-            }
+                String b64 = Base64.getEncoder().encodeToString(avatar.getBytes());
+                current.setAvatarUrl("data:" + avatar.getContentType() + ";base64," + b64);
+            } catch (IOException e) { throw new RuntimeException("Ошибка загрузки аватара", e); }
         }
-        userRepository.save(currentUser);
+        userRepository.save(current);
     }
 
-    // ── Блокировка ───────────────────────────────────────────
+    // ── Блокировка ────────────────────────────────────────────
 
     @Transactional
-    public void blockUser(Long userId, String reason, Integer daysOrNull) {
-        User user = findById(userId);
-        user.setBlocked(true);
-        user.setBlockReason(reason);
-        user.setBlockUntil(daysOrNull != null
-                ? LocalDateTime.now().plusDays(daysOrNull)
-                : null);   // null = навсегда
+    public void blockUser(Long id, String reason, Integer days) {
+        User u = findById(id);
+        u.setBlocked(true);
+        u.setBlockReason(reason);
+        u.setBlockUntil(days != null ? LocalDateTime.now().plusDays(days) : null);
+        userRepository.save(u);
+    }
+
+    @Transactional
+    public void unblockUser(Long id) {
+        User u = findById(id);
+        u.setBlocked(false);
+        u.setBlockReason(null);
+        u.setBlockUntil(null);
+        userRepository.save(u);
+    }
+
+    @Transactional
+    public void changeRole(Long id, User.UserRole role) {
+        User u = findById(id);
+        u.setRole(role);
+        userRepository.save(u);
+    }
+
+    // ── Удаление пользователя ─────────────────────────────────
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = findById(id);
+        userRepository.deleteMessagesByUser(id);
+        userRepository.deleteNotificationsByUsername(user.getUsername());
+        userRepository.deleteReviewsByUser(id);
+        userRepository.deleteReviewsOfUserBooks(id);
+        userRepository.deleteBooksByUser(id);
+        userRepository.deleteReviewsTargetingUser(id);
+        userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void saveUser(User user) {
         userRepository.save(user);
     }
 
     @Transactional
-    public void unblockUser(Long userId) {
-        User user = findById(userId);
-        user.setBlocked(false);
-        user.setBlockReason(null);
-        user.setBlockUntil(null);
+    public boolean changePassword(User user, String currentPass, String newPass,
+                                  org.springframework.ui.Model model) {
+        if (currentPass == null || !passwordEncoder.matches(currentPass, user.getPassword())) {
+            model.addAttribute("error", "Текущий пароль введён неверно.");
+            return false;
+        }
+        user.setPassword(passwordEncoder.encode(newPass));
         userRepository.save(user);
-    }
-
-    // ── Изменение роли ───────────────────────────────────────
-
-    @Transactional
-    public void changeRole(Long userId, User.UserRole newRole) {
-        User user = findById(userId);
-        user.setRole(newRole);
-        userRepository.save(user);
-    }
-
-    // ── Удаление аккаунта ────────────────────────────────────
-
-    @Transactional
-    public void deleteUser(Long userId) {
-        userRepository.deleteById(userId);
+        return true;
     }
 }

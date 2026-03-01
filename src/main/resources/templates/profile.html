@@ -1,94 +1,383 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Профиль пользователя')}"></head>
+<head th:replace="~{fragments/layout :: head('Профиль')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<div class="container mt-4">
-  <div class="row g-4">
-    <div class="col-md-4">
-      <div class="card border-0 shadow-sm text-center p-4 mb-3" style="border-radius:16px;">
-        <div class="d-flex justify-content-center mb-3">
-          <img th:src="${user.avatarUrl != null && !user.avatarUrl.isEmpty() ? user.avatarUrl : '/images/usual_avatar.png'}"
-               class="rounded-circle" width="120" height="120" style="object-fit:cover;border:3px solid #e5e7eb;">
-        </div>
-        <h4 class="fw-bold mb-0" th:text="${user.fullName ?: user.username}">Имя</h4>
-        <p class="text-muted small mb-1" th:text="${'@' + user.username}">@login</p>
-        <p class="text-muted small" th:text="${user.email}">email</p>
-        <hr class="my-2">
-        <div class="text-start small">
-          <p th:if="${user.age}" class="mb-1"><i class="fas fa-birthday-cake me-2 text-muted"></i><span th:text="${user.age}"></span> лет</p>
-          <p th:if="${user.city}" class="mb-1"><i class="fas fa-map-marker-alt me-2 text-muted"></i><span th:text="${user.city}"></span></p>
-          <p th:if="${user.gender}" class="mb-1"><i class="fas fa-venus-mars me-2 text-muted"></i><span th:text="${user.gender}"></span></p>
-        </div>
-        <a href="/profile/edit" class="btn btn-outline-primary btn-sm rounded-pill mt-3">Редактировать профиль</a>
+
+<style>
+  .profile-wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 80px; }
+  .profile-card { background:#fff; border-radius:24px; padding:28px; border:1.5px solid #f1f5f9; box-shadow:0 2px 12px rgba(0,0,0,.04); }
+  .profile-avatar { width:88px; height:88px; border-radius:50%; object-fit:cover; border:3px solid #e2e8f0; flex-shrink:0; }
+  .profile-name { font-size:1.3rem; font-weight:800; color:#1a1a2e; }
+  .profile-username { font-size:.85rem; color:#94a3b8; }
+  .rank-badge { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#3b5bdb15,#7048e815); border:1.5px solid #3b5bdb30; border-radius:50px; padding:5px 16px; font-size:.82rem; font-weight:700; color:#3b5bdb; margin-top:10px; }
+  .section-title { font-size:1rem; font-weight:700; color:#1a1a2e; margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+  /* ── Статистика ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .stat-card { background:#fff; border-radius:18px; padding:20px 14px; text-align:center; border:1.5px solid #f1f5f9; box-shadow:0 2px 8px rgba(0,0,0,.04); cursor:pointer; transition:transform .2s, box-shadow .2s, border-color .2s; position:relative; overflow:hidden; }
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .stat-card.books-added::before { background:linear-gradient(90deg,#3b5bdb,#7048e8); }
+  .stat-card.books-given::before { background:linear-gradient(90deg,#0d9488,#10b981); }
+  .stat-card.reviews::before     { background:linear-gradient(90deg,#f59e0b,#f97316); }
+  .stat-card.days::before        { background:linear-gradient(90deg,#ec4899,#a855f7); }
+  .stat-card:hover, .stat-card.active-stat { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.09); }
+  .stat-card.books-added.active-stat { border-color:#3b5bdb40; }
+  .stat-card.books-given.active-stat { border-color:#0d948840; }
+  .stat-card.reviews.active-stat { border-color:#f59e0b40; }
+  .stat-card.days.active-stat { border-color:#ec489940; }
+  .stat-icon { font-size:1.6rem; display:block; margin-bottom:8px; }
+  .stat-num { font-size:2rem; font-weight:800; color:#1a1a2e; line-height:1; margin-bottom:4px; }
+  .stat-label { font-size:.78rem; color:#94a3b8; font-weight:500; }
+  .click-hint { font-size:.62rem; color:#cbd5e1; margin-top:4px; font-style:italic; }
+
+  /* ── Детализация ── */
+  .detail-panel { background:#fff; border-radius:20px; border:1.5px solid #e2e8f0; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-top:16px; overflow:hidden; max-height:0; transition:max-height .4s ease, padding .3s; padding:0 24px; }
+  .detail-panel.open { max-height:600px; padding:20px 24px; overflow-y:auto; }
+  .detail-panel h5 { font-size:.9rem; font-weight:700; color:#1a1a2e; margin-bottom:14px; }
+  .detail-book-item { display:flex; align-items:center; gap:12px; padding:10px; border-radius:12px; margin-bottom:8px; border:1px solid #f3f4f6; transition:background .15s; }
+  .detail-book-item:hover { background:#fafbff; }
+  .detail-book-cover { width:36px; height:50px; border-radius:6px; object-fit:cover; flex-shrink:0; background:#f3f4f6; }
+  .detail-book-info { flex:1; min-width:0; }
+  .detail-book-title { font-weight:600; font-size:.85rem; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .detail-book-meta { font-size:.73rem; color:#94a3b8; }
+  .detail-review-item { padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid #f3f4f6; }
+  .detail-review-stars { color:#f59e0b; font-size:.85rem; }
+  .detail-review-comment { font-size:.82rem; color:#374151; margin-top:4px; line-height:1.4; }
+  .detail-review-meta { font-size:.72rem; color:#94a3b8; margin-top:4px; }
+
+  /* ── Достижения — ИСПРАВЛЕННЫЙ ТУЛТИП ── */
+  .achievements-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; }
+  .ach-card { border-radius:16px; padding:14px 8px; text-align:center; cursor:pointer; transition:transform .2s, box-shadow .2s; position:relative; border:2px solid transparent; }
+  .ach-card.earned { background:linear-gradient(135deg,#fff8e1,#fff3cd); border-color:#f59e0b40; box-shadow:0 2px 10px rgba(245,158,11,.12); }
+  .ach-card.earned:hover { transform:translateY(-3px) scale(1.05); box-shadow:0 8px 24px rgba(245,158,11,.2); }
+  .ach-card.locked { background:#f8fafc; border-color:#e2e8f0; opacity:.65; }
+  .ach-card.locked:hover { opacity:.85; transform:translateY(-1px); }
+  /* FEATURED badge */
+  .ach-card.featured-card { box-shadow:0 0 0 2px #f59e0b, 0 4px 16px rgba(245,158,11,.3) !important; }
+  .featured-star { position:absolute; top:-5px; right:-5px; background:#f59e0b; color:#fff; border-radius:50%; width:18px; height:18px; font-size:.65rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+  .ach-icon { font-size:2rem; display:block; margin-bottom:5px; }
+  .ach-title { font-size:.68rem; font-weight:600; color:#374151; line-height:1.2; }
+  /* Кнопка витрины */
+  .feat-toggle-btn {
+    display:block; width:100%; margin-top:6px; padding:3px 0;
+    border-radius:6px; border:1px solid #e2e8f0; background:transparent;
+    font-size:.6rem; cursor:pointer; transition:all .15s; color:#94a3b8;
+  }
+  .feat-toggle-btn.active { background:#f59e0b; border-color:#f59e0b; color:#fff; font-weight:600; }
+  .feat-toggle-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* Витрина достижений на профиле */
+  .featured-strip { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:4px; }
+  .featured-badge-big {
+    display:flex; align-items:center; gap:8px;
+    background:linear-gradient(135deg,#fffbeb,#fef3c7);
+    border:1.5px solid #f59e0b50; border-radius:12px; padding:8px 14px;
+    font-size:.82rem; font-weight:600; color:#92400e;
+  }
+  .featured-badge-big .fb-icon { font-size:1.2rem; }
+
+  /* Глобальный тултип достижений */
+  #achTooltip {
+    position:fixed; z-index:99999;
+    background:#1e293b; color:#fff;
+    border-radius:14px; padding:14px 16px;
+    font-size:.82rem; width:230px; line-height:1.55;
+    box-shadow:0 12px 40px rgba(0,0,0,.35);
+    pointer-events:none;
+    opacity:0; transition:opacity .18s;
+    white-space:normal;
+    /* Стрелка сверху */
+  }
+  /* Стрелка по умолчанию — сверху тултипа (тултип ниже карточки) */
+  #achTooltip::before {
+    content:'';
+    position:absolute; bottom:100%; left:50%;
+    transform:translateX(-50%);
+    border:7px solid transparent;
+    border-bottom-color:#1e293b;
+  }
+  /* Стрелка снизу тултипа (тултип выше карточки) */
+  #achTooltip.arrow-below::before {
+    bottom:auto; top:100%;
+    border-bottom-color:transparent;
+    border-top-color:#1e293b;
+  }
+  #achTooltip.visible { opacity:1; }
+  #achTooltip strong { font-size:.88rem; display:block; margin-bottom:4px; }
+  #achTooltip .tip-desc { color:#cbd5e1; font-size:.78rem; }
+  #achTooltip .tip-earned { color:#4ade80; font-size:.75rem; margin-top:6px; display:block; }
+  #achTooltip .tip-locked { color:#94a3b8; font-size:.75rem; margin-top:6px; display:block; }
+</style>
+
+<meta name="_csrf" th:content="${_csrf.token}">
+
+<!-- Глобальный тултип — вне любого контейнера -->
+<div id="achTooltip"></div>
+
+<div class="profile-wrap">
+
+  <div th:if="${success}" class="alert alert-success alert-dismissible fade show mb-3 rounded-4" role="alert">
+    ✅ <span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- Карточка пользователя -->
+  <div class="profile-card d-flex flex-wrap gap-4 align-items-start">
+    <img th:src="${profileUser.avatarDisplay}" class="profile-avatar" alt="Аватар">
+    <div class="flex-grow-1">
+      <div class="profile-name" th:text="${profileUser.fullName != null ? profileUser.fullName : '@' + profileUser.username}"></div>
+      <div class="profile-username" th:text="'@' + ${profileUser.username}"></div>
+      <div class="d-flex flex-wrap gap-3 mt-2">
+        <span th:if="${profileUser.city != null}" class="text-muted small">📍 <span th:text="${profileUser.city}"></span></span>
+        <span th:if="${profileUser.age != null}" class="text-muted small">🎂 <span th:text="${profileUser.age}"></span> лет</span>
+        <span th:if="${profileUser.favoriteGenres != null}" class="text-muted small">📚 <span th:text="${profileUser.favoriteGenres}"></span></span>
       </div>
-      <div class="card border-0 shadow-sm p-3" style="border-radius:16px;" th:if="${user.aboutMe}">
-        <h6 class="fw-bold mb-2">О себе</h6>
-        <p class="small text-secondary mb-0" th:text="${user.aboutMe}"></p>
-      </div>
+      <div class="rank-badge mt-2" id="rankBadge"><span id="rankText">⏳</span></div>
     </div>
-
-    <div class="col-md-8">
-      <!-- Книги -->
-      <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
-        <div class="card-header bg-transparent border-0 pt-3"><h5 class="fw-bold mb-0">Мои книги</h5></div>
-        <div class="card-body pt-0">
-          <div th:if="${books.empty}" class="text-muted small">Книг пока нет.</div>
-          <div class="list-group list-group-flush">
-            <div class="list-group-item border-0 d-flex align-items-center px-0" th:each="book : ${books}">
-              <img th:src="${book.imageDisplay}" width="36" height="52" class="rounded me-3 flex-shrink-0" style="object-fit:cover;">
-              <div class="flex-grow-1 min-width-0">
-                <strong class="d-block text-truncate small" th:text="${book.title}">Название</strong>
-                <small class="text-muted" th:text="${book.author}">Автор</small>
-              </div>
-              <span class="badge ms-2" th:text="${book.status.displayValue}"
-                    th:classappend="${book.status.name() == 'FREE'} ? 'bg-success' : 'bg-danger'"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Отзывы -->
-      <!--
-        ИСПРАВЛЕНИЕ: Ранее шаблон использовал несуществующие поля:
-          review.author  →  ПРАВИЛЬНО: review.user  (поле User user в Review.java)
-          review.timestamp  →  ПРАВИЛЬНО: review.createdAt  (поле LocalDateTime createdAt)
-        Это вызывало TemplateProcessingException при загрузке страницы профиля.
-      -->
-      <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
-        <div class="card-header bg-transparent border-0 pt-3 d-flex justify-content-between align-items-center">
-          <h5 class="fw-bold mb-0">Отзывы</h5>
-          <span class="badge bg-primary rounded-pill" th:text="${reviews != null ? reviews.size() : 0}">0</span>
-        </div>
-        <div class="card-body pt-0">
-          <div th:if="${reviews == null || reviews.empty}" class="text-muted small">Отзывов пока нет.</div>
-          <div class="list-group list-group-flush">
-            <div class="list-group-item border-0 px-0" th:each="review : ${reviews}">
-              <div class="d-flex justify-content-between mb-1">
-                <!-- Исправлено: review.user вместо review.author -->
-                <strong class="small" th:text="${review.user.username}">Автор</strong>
-                <!-- Исправлено: review.createdAt вместо review.timestamp -->
-                <small class="text-muted" th:text="${#temporals.format(review.createdAt, 'dd.MM.yyyy')}"></small>
-              </div>
-              <!-- ИСПРАВЛЕНИЕ #5: Звёзды рейтинга -->
-              <div class="book-rating-display mb-1">
-                <span th:each="i : ${#numbers.sequence(1, 5)}">
-                  <i th:class="${i <= review.rating} ? 'fas fa-star star' : 'far fa-star star-empty'"></i>
-                </span>
-              </div>
-              <p class="mb-0 small" th:text="${review.comment}">Текст</p>
-              <small class="text-muted">О книге: <i th:text="${review.book.title}"></i></small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card border-0 shadow-sm" style="border-radius:16px;">
-        <div class="card-header bg-transparent border-0 pt-3"><h5 class="fw-bold mb-0">История обменов</h5></div>
-        <div class="card-body"><div th:if="${exchangeHistory.empty}" class="text-muted small">История пуста.</div></div>
-      </div>
+    <div th:if="${isOwnProfile}">
+      <a href="/profile/edit" class="btn btn-outline-primary rounded-pill btn-sm px-4">✏️ Редактировать</a>
     </div>
   </div>
+
+  <!-- Витрина достижений (топ-3 выбранных) -->
+  <div id="featuredStripWrap" class="mt-3" style="display:none;">
+    <div class="section-title" style="font-size:.85rem; margin-bottom:8px;">⭐ На витрине</div>
+    <div class="featured-strip" id="featuredStrip"></div>
+  </div>
+
+  <!-- Статистика -->
+  <div class="mt-4">
+    <div class="section-title">📊 Статистика</div>
+    <div class="stats-grid">
+      <div class="stat-card books-added" onclick="toggleDetail('booksAdded')" id="cardBooksAdded">
+        <span class="stat-icon">📚</span><div class="stat-num" id="statBooksAdded">—</div>
+        <div class="stat-label">Добавлено книг</div><div class="click-hint">нажмите ↓</div>
+      </div>
+      <div class="stat-card books-given" onclick="toggleDetail('booksGiven')" id="cardBooksGiven">
+        <span class="stat-icon">🤝</span><div class="stat-num" id="statBooksGiven">—</div>
+        <div class="stat-label">Передано книг</div><div class="click-hint">нажмите ↓</div>
+      </div>
+      <div class="stat-card reviews" onclick="toggleDetail('reviews')" id="cardReviews">
+        <span class="stat-icon">⭐</span><div class="stat-num" id="statReviews">—</div>
+        <div class="stat-label">Отзывов</div><div class="click-hint">нажмите ↓</div>
+      </div>
+      <div class="stat-card days" onclick="toggleDetail('days')" id="cardDays">
+        <span class="stat-icon">🗓️</span><div class="stat-num" id="statDays">—</div>
+        <div class="stat-label">Дней в системе</div><div class="click-hint">нажмите ↓</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detailBooksAdded"><h5>📚 Добавленные книги</h5><div id="listBooksAdded"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailBooksGiven"><h5>🤝 Переданные книги</h5><div id="listBooksGiven"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailReviews"><h5>⭐ Мои отзывы</h5><div id="listReviews"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailDays"><h5>🗓️ Хронология</h5><div id="listDays"><div class="text-muted small py-2">Загрузка...</div></div></div>
+  </div>
+
+  <!-- Достижения -->
+  <div class="mt-4">
+    <div class="section-title">
+      🏅 Достижения
+      <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size:.7rem;" id="achCount">…</span>
+      <span th:if="${isOwnProfile}" class="text-muted small fw-normal">— нажмите «⭐ Витрина» на заработанных</span>
+    </div>
+    <div class="achievements-grid" id="achievementsGrid"><div class="text-muted small">Загрузка...</div></div>
+  </div>
+
+  <!-- О себе -->
+  <div th:if="${profileUser.aboutMe != null}" class="mt-4 profile-card">
+    <div class="section-title">💬 О себе</div>
+    <p class="text-muted mb-0" style="white-space:pre-wrap;" th:text="${profileUser.aboutMe}"></p>
+  </div>
 </div>
+
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  var profileUsername = /*[[${profileUser.username}]]*/ '';
+  var isOwnProfile    = /*[[${isOwnProfile}]]*/ false;
+  var csrfToken       = document.querySelector('meta[name="_csrf"]');
+  var csrfVal         = csrfToken ? csrfToken.getAttribute('content') : '';
+  var loaded = {};
+
+  // ── Анимированный счётчик ─────────────────────────────
+  function animateNum(el, target) {
+    var s=0, dur=600;
+    var step=function(ts){if(!s)s=ts;var p=Math.min((ts-s)/dur,1);el.textContent=Math.floor(p*target);if(p<1)requestAnimationFrame(step);else el.textContent=target;};
+    requestAnimationFrame(step);
+  }
+
+  // ── Статистика ────────────────────────────────────────
+  async function loadStats() {
+    try {
+      var r=await fetch('/api/users/'+profileUsername+'/stats');if(!r.ok)return;var s=await r.json();
+      animateNum(document.getElementById('statBooksAdded'),s.booksAdded);
+      animateNum(document.getElementById('statBooksGiven'),s.booksGiven);
+      animateNum(document.getElementById('statReviews'),s.reviewsWritten);
+      animateNum(document.getElementById('statDays'),s.daysInSystem);
+      if(s.rank)document.getElementById('rankText').textContent=s.rank;
+    }catch(e){}
+  }
+
+  // ── Детализация ───────────────────────────────────────
+  function toggleDetail(type) {
+    var cap=function(s){return s.charAt(0).toUpperCase()+s.slice(1);};
+    var types=['booksAdded','booksGiven','reviews','days'];
+    types.forEach(function(t){
+      var panel=document.getElementById('detail'+cap(t));
+      var card=document.getElementById('card'+cap(t));
+      if(t===type){
+        if(panel.classList.contains('open')){panel.classList.remove('open');if(card)card.classList.remove('active-stat');}
+        else{panel.classList.add('open');if(card)card.classList.add('active-stat');if(!loaded[t]){loadDetail(t);loaded[t]=true;}}
+      }else{panel.classList.remove('open');if(card)card.classList.remove('active-stat');}
+    });
+  }
+
+  async function loadDetail(type) {
+    var urls={booksAdded:'/api/users/'+profileUsername+'/books-added',booksGiven:'/api/users/'+profileUsername+'/books-given',reviews:'/api/users/'+profileUsername+'/reviews',days:'/api/users/'+profileUsername+'/timeline'};
+    var renders={booksAdded:renderBooksAdded,booksGiven:renderBooksGiven,reviews:renderReviews,days:renderTimeline};
+    try{var r=await fetch(urls[type]);if(!r.ok)return;var data=await r.json();renders[type](data);}catch(e){}
+  }
+
+  function stars(n){return'★'.repeat(n)+'☆'.repeat(5-n);}
+
+  function renderBooksAdded(books){var el=document.getElementById('listBooksAdded');if(!books||!books.length){el.innerHTML='<p class="text-muted small">Книг ещё нет.</p>';return;}el.innerHTML=books.map(function(b){return'<div class="detail-book-item"><img class="detail-book-cover" src="'+(b.image||'/images/no-cover.png')+'" onerror="this.src=\'/images/no-cover.png\'" alt=""><div class="detail-book-info"><div class="detail-book-title">'+b.title+'</div><div class="detail-book-meta">'+b.author+' · '+b.genre+'</div><span class="badge rounded-pill '+(b.status==='Свободна'?'bg-success':'bg-secondary')+' mt-1" style="font-size:.65rem;">'+b.status+'</span></div></div>';}).join('');}
+
+  function renderBooksGiven(books){var el=document.getElementById('listBooksGiven');if(!books||!books.length){el.innerHTML='<p class="text-muted small">Переданных книг нет.</p>';return;}el.innerHTML=books.map(function(b){return'<div class="detail-book-item"><img class="detail-book-cover" src="'+(b.image||'/images/no-cover.png')+'" onerror="this.src=\'/images/no-cover.png\'" alt=""><div class="detail-book-info"><div class="detail-book-title">'+b.title+'</div><div class="detail-book-meta">'+b.author+'</div>'+(b.bookedBy?'<div class="detail-book-meta">👤 '+b.bookedBy+(b.bookedSince?' · с '+b.bookedSince:'')+(b.bookedUntil?' · до '+b.bookedUntil:'')+'</div>':'')+'</div></div>';}).join('');}
+
+  function renderReviews(reviews){var el=document.getElementById('listReviews');if(!reviews||!reviews.length){el.innerHTML='<p class="text-muted small">Отзывов ещё нет.</p>';return;}el.innerHTML=reviews.map(function(r){return'<div class="detail-review-item"><div class="d-flex align-items-center gap-2"><img src="'+(r.bookImage||'/images/no-cover.png')+'" alt="" style="width:28px;height:38px;object-fit:cover;border-radius:4px;"><div class="fw-semibold" style="font-size:.82rem;">'+r.bookTitle+'</div></div><div class="detail-review-stars mt-1">'+stars(r.rating)+'</div><div class="detail-review-comment">'+r.comment+'</div><div class="detail-review-meta">'+r.date+(r.edited?' (изменён)':'')+'</div></div>';}).join('');}
+
+  function renderTimeline(data){document.getElementById('listDays').innerHTML='<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:12px;"><div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#a855f7);flex-shrink:0;margin-top:4px;"></div><div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дата регистрации</div><div style="font-size:.78rem;color:#94a3b8;">'+data.registeredAt+'</div></div></div><div style="padding:8px 0;display:flex;gap:12px;"><div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#3b5bdb,#7048e8);flex-shrink:0;margin-top:4px;"></div><div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дней в системе</div><div style="font-size:.78rem;color:#94a3b8;">'+data.daysInSystem+' дней</div></div></div>';}
+
+  // ── Глобальный тултип (вне grid) ─────────────────────
+  var tooltip = document.getElementById('achTooltip');
+  function showTooltip(card, a) {
+    var info = a.earned
+            ? '<span class="tip-earned">✅ Получено' + (a.earnedAt ? ' ' + new Date(a.earnedAt).toLocaleDateString('ru-RU') : '') + '</span>'
+            : '<span class="tip-locked">🔒 ' + (a.condition || 'Не получено') + '</span>';
+
+    tooltip.innerHTML =
+            '<strong>' + a.icon + ' ' + a.title + '</strong>' +
+            '<span class="tip-desc">' + a.description + '</span>' +
+            info;
+
+    tooltip.classList.remove('visible', 'arrow-below');
+
+    // position:fixed — координаты ТОЛЬКО из viewport (без scrollY/scrollX)
+    var rect = card.getBoundingClientRect();
+    var tw = 230;  // ширина тултипа
+    var th = 120;  // примерная высота тултипа
+
+    // Центрируем по горизонтали относительно карточки
+    var left = rect.left + rect.width / 2 - tw / 2;
+
+    // По умолчанию — показываем НИЖЕ карточки, стрелка СВЕРХУ
+    var top = rect.bottom + 10;
+    var arrowBelow = false;
+
+    // Если внизу не хватает места — показываем ВЫШЕ
+    if (top + th > window.innerHeight - 8) {
+      top = rect.top - th - 10;
+      arrowBelow = true;  // стрелка снизу тултипа (указывает вниз на карточку)
+    }
+
+    // Не выходим за горизонтальные края
+    if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+    if (left < 8) left = 8;
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top + 'px';
+    if (arrowBelow) tooltip.classList.add('arrow-below');
+    tooltip.classList.add('visible');
+  }
+  function hideTooltip() { tooltip.classList.remove('visible'); }
+
+  // ── Витрина достижений ────────────────────────────────
+  var featuredCount = 0;
+
+  async function toggleFeatured(code, btn) {
+    var r = await fetch('/api/achievements/' + code + '/toggle-featured', {
+      method:'POST',
+      headers:{'X-CSRF-TOKEN': csrfVal, 'Content-Type':'application/json'}
+    });
+    var data = await r.json();
+    if (!r.ok) {
+      if (data.error) showToastMsg(data.error, 'warning');
+      return;
+    }
+    featuredCount = data.featuredCount;
+    // Перезагружаем достижения
+    loaded['achievements'] = false;
+    await loadAchievements();
+    showToastMsg(data.featured ? '⭐ Добавлено на витрину!' : 'Убрано с витрины', 'success');
+  }
+
+  function showToastMsg(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'alert alert-' + (type||'info') + ' position-fixed rounded-4 shadow';
+    el.style.cssText = 'bottom:24px;right:24px;z-index:9999;font-size:.88rem;padding:10px 20px;';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function(){el.remove();}, 2500);
+  }
+
+  function renderFeaturedStrip(list) {
+    var wrap = document.getElementById('featuredStripWrap');
+    var strip = document.getElementById('featuredStrip');
+    var featured = list.filter(function(a){ return a.featured && a.earned; });
+    if (!featured.length) { wrap.style.display='none'; return; }
+    wrap.style.display = 'block';
+    strip.innerHTML = featured.map(function(a){
+      return '<div class="featured-badge-big"><span class="fb-icon">'+a.icon+'</span><span>'+a.title+'</span></div>';
+    }).join('');
+  }
+
+  // ── Загрузка достижений ───────────────────────────────
+  async function loadAchievements() {
+    try {
+      var r = await fetch('/api/achievements');
+      if(!r.ok) return;
+      var list = await r.json();
+      var grid = document.getElementById('achievementsGrid');
+      grid.innerHTML = '';
+      var earned = list.filter(function(a){return a.earned;}).length;
+      featuredCount = list.filter(function(a){return a.featured;}).length;
+      document.getElementById('achCount').textContent = earned + ' / ' + list.length;
+
+      // Обновляем витрину
+      renderFeaturedStrip(list);
+
+      list.forEach(function(a) {
+        var card = document.createElement('div');
+        card.className = 'ach-card ' + (a.earned ? 'earned' : 'locked') + (a.featured ? ' featured-card' : '');
+
+        var featBtn = '';
+        if (isOwnProfile && a.earned) {
+          var btnClass = a.featured ? 'feat-toggle-btn active' : 'feat-toggle-btn';
+          var btnLabel = a.featured ? '★ На витрине' : '☆ Витрина';
+          featBtn = '<button class="' + btnClass + '" onclick="event.stopPropagation(); toggleFeatured(\'' + a.code + '\', this)">' + btnLabel + '</button>';
+        }
+
+        var featStar = a.featured ? '<div class="featured-star">★</div>' : '';
+
+        card.innerHTML = featStar +
+                '<span class="ach-icon">' + a.icon + '</span>' +
+                '<div class="ach-title">' + a.title + '</div>' +
+                featBtn;
+
+        // Тултип через hover (глобальный)
+        card.addEventListener('mouseenter', function(e){ showTooltip(card, a); });
+        card.addEventListener('mouseleave', function(){ hideTooltip(); });
+
+        grid.appendChild(card);
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadAchievements();
+    setInterval(loadStats, 60000);
+  });
+  /*]]>*/
+</script>
 </body>
 </html>

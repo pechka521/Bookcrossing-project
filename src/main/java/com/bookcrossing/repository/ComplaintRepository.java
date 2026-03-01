@@ -1,6 +1,7 @@
 package com.bookcrossing.repository;
 
 import com.bookcrossing.model.Complaint;
+import com.bookcrossing.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,9 +14,11 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
     List<Complaint> findByStatusOrderByCreatedAtDesc(Complaint.ComplaintStatus status);
 
-    // Статистика для дашборда
     long countByStatus(Complaint.ComplaintStatus status);
 
     @Query("SELECT COUNT(c) FROM Complaint c WHERE c.resolvedBy.username = :username")
     long countResolvedByModerator(@Param("username") String username);
+
+    // Для достижений — жалобы, отправленные пользователем
+    long countByAuthor(User author);
 }

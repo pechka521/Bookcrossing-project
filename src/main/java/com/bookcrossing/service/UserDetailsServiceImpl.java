@@ -2,12 +2,15 @@ package com.bookcrossing.service;
 
 import com.bookcrossing.model.User;
 import com.bookcrossing.repository.UserRepository;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -22,14 +25,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
 
-        // ── Проверка блокировки ──────────────────────────────────
+        // ── Проверка блокировки — выбрасываем DisabledException ──────────
+        // Spring Security показывает его на странице логина как отдельную ошибку
         if (user.isCurrentlyBlocked()) {
-            // Spring Security интерпретирует enabled=false как "аккаунт заблокирован"
-            String reason = user.getBlockReason() != null ? user.getBlockReason() : "без указания причины";
-            throw new UsernameNotFoundException(
-                    "Ваш аккаунт заблокирован. Причина: " + reason);
+            String reason = user.getBlockReason() != null
+                    ? user.getBlockReason() : "нарушение правил";
+            String until;
+            if (user.getBlockUntil() == null) {
+                until = "бессрочно";
+            } else {
+                until = "до " + user.getBlockUntil()
+                        .format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+            }
+            // Сообщение передаётся через URL ?blocked=... на страницу логина
+            throw new DisabledException("BLOCKED|" + reason + "|" + until);
         }
 
         return org.springframework.security.core.userdetails.User
@@ -38,8 +49,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .authorities(List.of(
                         new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
                 ))
-                .accountLocked(false)
-                .disabled(false)
                 .build();
     }
 }

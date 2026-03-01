@@ -36,7 +36,8 @@ public class Book {
 
     public enum BookStatus {
         FREE("Свободна"),
-        BUSY("Занята");
+        BUSY("Занята"),
+        BOOKED("Забронирована");
 
         private final String displayValue;
         BookStatus(String displayValue) { this.displayValue = displayValue; }

@@ -15,9 +15,12 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
+    private final CustomAuthFailureHandler authFailureHandler;
 
-    public SecurityConfig(UserDetailsService userDetailsService) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(UserDetailsService userDetailsService,
+                          CustomAuthFailureHandler authFailureHandler) {
+        this.userDetailsService  = userDetailsService;
+        this.authFailureHandler  = authFailureHandler;
     }
 
     @Bean
@@ -36,34 +39,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/ws/**")  // WebSocket не нуждается в CSRF
-                )
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/ws/**"))
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные страницы
                         .requestMatchers("/register", "/login", "/css/**", "/js/**",
                                 "/images/**", "/sounds/**").permitAll()
-                        // Только ADMIN
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        // ADMIN или MODERATOR
                         .requestMatchers("/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
-                        // Остальное — только авторизованные
+                        .requestMatchers("/complaints/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
-                        .failureUrl("/login?error")
+                        .failureHandler(authFailureHandler)   // <-- кастомный обработчик
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
                 )
-                .exceptionHandling(ex -> ex
-                        .accessDeniedPage("/access-denied")
-                );
+                .exceptionHandling(ex -> ex.accessDeniedPage("/access-denied"));
 
         return http.build();
     }

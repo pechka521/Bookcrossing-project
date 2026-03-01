@@ -209,26 +209,38 @@
   <!-- Сообщение об ошибке (если рейтинг не выбран) -->
   <div class="error-msg" th:if="${error}" th:text="${error}"></div>
 
+  <!-- Заголовок меняется в зависимости от режима -->
+  <div th:if="${editMode != null and editMode}" class="alert alert-info rounded-3 mb-3" style="font-size:.85rem;padding:10px 14px;">
+    ✏️ Вы уже оставляли отзыв на эту книгу. Вы можете изменить его.
+  </div>
+
   <form th:action="@{/reviews/add}" method="post">
-    <!-- bookId передаётся явно как hidden input -->
     <input type="hidden" name="bookId" th:value="${book.id}">
+    <!-- id существующего отзыва для редактирования -->
+    <input type="hidden" name="existingReviewId"
+           th:if="${existingReview != null}" th:value="${existingReview.id}">
 
     <!-- ====== ЗВЁЗДНЫЙ РЕЙТИНГ ====== -->
     <div class="star-rating-wrap">
       <fieldset class="star-rating-group" id="starGroup">
-        <input type="radio" id="star5" name="rating" value="5" required>
+        <input type="radio" id="star5" name="rating" value="5" required
+               th:checked="${existingReview != null and existingReview.rating == 5}">
         <label for="star5" title="Отлично"></label>
 
-        <input type="radio" id="star4" name="rating" value="4">
+        <input type="radio" id="star4" name="rating" value="4"
+               th:checked="${existingReview != null and existingReview.rating == 4}">
         <label for="star4" title="Хорошо"></label>
 
-        <input type="radio" id="star3" name="rating" value="3">
+        <input type="radio" id="star3" name="rating" value="3"
+               th:checked="${existingReview != null and existingReview.rating == 3}">
         <label for="star3" title="Нормально"></label>
 
-        <input type="radio" id="star2" name="rating" value="2">
+        <input type="radio" id="star2" name="rating" value="2"
+               th:checked="${existingReview != null and existingReview.rating == 2}">
         <label for="star2" title="Плохо"></label>
 
-        <input type="radio" id="star1" name="rating" value="1">
+        <input type="radio" id="star1" name="rating" value="1"
+               th:checked="${existingReview != null and existingReview.rating == 1}">
         <label for="star1" title="Ужасно"></label>
       </fieldset>
     </div>
@@ -241,10 +253,16 @@
               rows="4"
               placeholder="Поделитесь впечатлением о книге..."
               required
-              maxlength="1000"></textarea>
+              minlength="10"
+              maxlength="2000"
+              id="commentArea"
+              th:text="${existingReview != null ? existingReview.comment : ''}"></textarea>
+    <div style="font-size:.72rem;color:#9ca3af;text-align:right;margin-top:3px;">
+      <span id="commentCount">0</span> / 2000 (минимум 10)
+    </div>
 
-    <button type="submit" class="btn-submit">
-      <i class="fas fa-paper-plane me-2"></i>Опубликовать отзыв
+    <button type="submit" class="btn-submit" th:text="${editMode != null and editMode ? '✏️ Обновить отзыв' : '📤 Опубликовать отзыв'}">
+      Опубликовать
     </button>
   </form>
 
@@ -281,6 +299,17 @@
               checked ? hints[checked.value] : 'Выберите оценку';
     });
   });
+  // Счётчик символов
+  var ca = document.getElementById('commentArea');
+  var cc = document.getElementById('commentCount');
+  function updateCommentCount() {
+    var len = ca ? ca.value.length : 0;
+    if (cc) cc.textContent = len;
+    if (ca) {
+      ca.style.borderColor = len < 10 ? '#f59e0b' : (len > 1900 ? '#ef4444' : '');
+    }
+  }
+  if (ca) { ca.addEventListener('input', updateCommentCount); updateCommentCount(); }
 </script>
 
 </body>

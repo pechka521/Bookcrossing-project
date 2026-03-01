@@ -10,10 +10,8 @@ import java.util.List;
 
 public interface BookRepository extends JpaRepository<Book, Long> {
 
-    // ── Все книги пользователя ──────────────────────────────
     List<Book> findByOwner(User owner);
 
-    // ── Поиск по заголовку или автору (без фильтра жанра) ──
     @Query("""
         SELECT b FROM Book b
         WHERE LOWER(b.title)  LIKE LOWER(CONCAT('%',:q,'%'))
@@ -21,11 +19,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
         """)
     List<Book> searchByQuery(@Param("q") String query);
 
-    // ── Только фильтр по жанру ──────────────────────────────
     @Query("SELECT b FROM Book b WHERE LOWER(b.genre) = LOWER(:genre)")
     List<Book> searchByGenre(@Param("genre") String genre);
 
-    // ── Поиск + фильтр жанра ───────────────────────────────
     @Query("""
         SELECT b FROM Book b
         WHERE (LOWER(b.title)  LIKE LOWER(CONCAT('%',:q,'%'))
@@ -35,7 +31,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> searchByQueryAndGenre(@Param("q") String query,
                                      @Param("genre") String genre);
 
-    // ── Поиск по книгам конкретного пользователя ───────────
     @Query("""
         SELECT b FROM Book b
         WHERE b.owner = :owner

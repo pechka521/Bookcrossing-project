@@ -1,8 +1,10 @@
 package com.bookcrossing.controller;
 
 import com.bookcrossing.model.*;
+import com.bookcrossing.repository.BookRepository;
 import com.bookcrossing.repository.ComplaintRepository;
 import com.bookcrossing.repository.ModerationLogRepository;
+import com.bookcrossing.repository.ReviewRepository;
 import com.bookcrossing.service.NotificationService;
 import com.bookcrossing.service.UserService;
 import org.springframework.stereotype.Controller;
@@ -22,15 +24,21 @@ public class ModeratorController {
     private final ModerationLogRepository logRepository;
     private final UserService userService;
     private final NotificationService notificationService;
+    private final BookRepository bookRepository;
+    private final ReviewRepository reviewRepository;
 
     public ModeratorController(ComplaintRepository complaintRepository,
                                ModerationLogRepository logRepository,
                                UserService userService,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               BookRepository bookRepository,
+                               ReviewRepository reviewRepository) {
         this.complaintRepository = complaintRepository;
         this.logRepository       = logRepository;
         this.userService         = userService;
         this.notificationService = notificationService;
+        this.bookRepository      = bookRepository;
+        this.reviewRepository    = reviewRepository;
     }
 
     // ── Панель модератора ─────────────────────────────────────
@@ -39,17 +47,15 @@ public class ModeratorController {
     public String moderatorPanel(Model model,
                                  @RequestParam(required = false) String status,
                                  Principal principal) {
-        // Жалобы с фильтром
         var complaints = (status != null && !status.isBlank())
                 ? complaintRepository.findByStatusOrderByCreatedAtDesc(
                 Complaint.ComplaintStatus.valueOf(status))
                 : complaintRepository.findAllByOrderByCreatedAtDesc();
 
-        model.addAttribute("complaints",      complaints);
-        model.addAttribute("selectedStatus",  status);
-        model.addAttribute("statuses",        Complaint.ComplaintStatus.values());
+        model.addAttribute("complaints",     complaints);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("statuses",       Complaint.ComplaintStatus.values());
 
-        // Статистика
         model.addAttribute("pendingCount",
                 complaintRepository.countByStatus(Complaint.ComplaintStatus.PENDING));
         model.addAttribute("acceptedCount",
@@ -59,38 +65,13 @@ public class ModeratorController {
         model.addAttribute("myResolved",
                 complaintRepository.countResolvedByModerator(principal.getName()));
 
-        // Лог действий текущего модератора
         model.addAttribute("myLogs",
                 logRepository.findByModeratorUsernameOrderByCreatedAtDesc(principal.getName()));
 
         return "moderator";
     }
 
-    // ── Подать жалобу (любой пользователь) ───────────────────
-
-    @PostMapping("/complaints/submit")
-    public String submitComplaint(@RequestParam Long targetBookId,
-                                  @RequestParam String targetBookTitle,
-                                  @RequestParam String type,
-                                  @RequestParam String description,
-                                  Principal principal,
-                                  RedirectAttributes ra) {
-        User author = userService.findByUsername(principal.getName());
-
-        Complaint c = new Complaint();
-        c.setAuthor(author);
-        c.setTargetBookId(targetBookId);
-        c.setTargetBookTitle(targetBookTitle);
-        c.setType(Complaint.ComplaintType.valueOf(type));
-        c.setDescription(description);
-        c.setCreatedAt(LocalDateTime.now());
-        complaintRepository.save(c);
-
-        ra.addFlashAttribute("success", "Жалоба отправлена модераторам.");
-        return "redirect:/";
-    }
-
-    // ── Принять жалобу ────────────────────────────────────────
+    // ── Принять жалобу (просто статус) ───────────────────────
 
     @Transactional
     @PostMapping("/complaints/{id}/accept")
@@ -98,27 +79,20 @@ public class ModeratorController {
                                   @RequestParam(required = false) String comment,
                                   Principal principal,
                                   RedirectAttributes ra) {
-        Complaint c = complaintRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Жалоба не найдена"));
-
+        Complaint c = findComplaint(id);
         User moderator = userService.findByUsername(principal.getName());
+
         c.setStatus(Complaint.ComplaintStatus.ACCEPTED);
         c.setModeratorComment(comment);
         c.setResolvedBy(moderator);
         c.setResolvedAt(LocalDateTime.now());
         complaintRepository.save(c);
 
-        // Уведомляем автора жалобы
-        notificationService.sendNotification(
-                c.getAuthor().getUsername(),
+        notificationService.sendNotification(c.getAuthor().getUsername(),
                 "Ваша жалоба принята",
-                "Жалоба на «" + c.getTargetBookTitle() + "» была рассмотрена и принята.",
-                "/notifications"
-        );
+                "Жалоба на «" + c.getTargetBookTitle() + "» рассмотрена и принята.", "/notifications");
 
-        // Лог
-        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_ACCEPTED,
-                c.getAuthor(), comment);
+        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_ACCEPTED, c.getAuthor(), comment);
 
         ra.addFlashAttribute("success", "Жалоба принята.");
         return "redirect:/moderator";
@@ -132,29 +106,127 @@ public class ModeratorController {
                                   @RequestParam(required = false) String comment,
                                   Principal principal,
                                   RedirectAttributes ra) {
-        Complaint c = complaintRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Жалоба не найдена"));
-
+        Complaint c = findComplaint(id);
         User moderator = userService.findByUsername(principal.getName());
+
         c.setStatus(Complaint.ComplaintStatus.REJECTED);
         c.setModeratorComment(comment);
         c.setResolvedBy(moderator);
         c.setResolvedAt(LocalDateTime.now());
         complaintRepository.save(c);
 
-        notificationService.sendNotification(
-                c.getAuthor().getUsername(),
+        notificationService.sendNotification(c.getAuthor().getUsername(),
                 "Ваша жалоба отклонена",
-                "Жалоба на «" + c.getTargetBookTitle() + "» была отклонена." +
-                        (comment != null ? " Причина: " + comment : ""),
-                "/notifications"
-        );
+                "Жалоба на «" + c.getTargetBookTitle() + "» отклонена." +
+                        (comment != null && !comment.isBlank() ? " Комментарий: " + comment : ""),
+                "/notifications");
 
-        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_REJECTED,
-                c.getAuthor(), comment);
+        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_REJECTED, c.getAuthor(), comment);
 
         ra.addFlashAttribute("success", "Жалоба отклонена.");
         return "redirect:/moderator";
+    }
+
+    // ── Уведомить автора книги об исправлении ─────────────────
+
+    @Transactional
+    @PostMapping("/complaints/{id}/notify-author")
+    public String notifyAuthor(@PathVariable Long id,
+                               @RequestParam(required = false) String comment,
+                               Principal principal,
+                               RedirectAttributes ra) {
+        Complaint c = findComplaint(id);
+        User moderator = userService.findByUsername(principal.getName());
+
+        // Находим владельца книги
+        String bookTitle = c.getTargetBookTitle();
+        Book book = c.getTargetBookId() != null
+                ? bookRepository.findById(c.getTargetBookId()).orElse(null)
+                : null;
+
+        if (book != null) {
+            notificationService.sendNotification(book.getOwner().getUsername(),
+                    "Жалоба на вашу книгу",
+                    "На книгу «" + bookTitle + "» поступила жалоба. " +
+                            "Пожалуйста, исправьте нарушение." +
+                            (comment != null && !comment.isBlank() ? " Комментарий модератора: " + comment : ""),
+                    "/my-books");
+        }
+
+        // Меняем статус жалобы на принята (но книга не удалена)
+        c.setStatus(Complaint.ComplaintStatus.ACCEPTED);
+        c.setModeratorComment("Автор уведомлён. " + (comment != null ? comment : ""));
+        c.setResolvedBy(moderator);
+        c.setResolvedAt(LocalDateTime.now());
+        complaintRepository.save(c);
+
+        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_ACCEPTED, c.getAuthor(),
+                "Автор уведомлён об исправлении");
+
+        ra.addFlashAttribute("success", "Автор книги «" + bookTitle + "» уведомлён.");
+        return "redirect:/moderator";
+    }
+
+    // ── Удалить книгу по жалобе ───────────────────────────────
+
+    @Transactional
+    @PostMapping("/complaints/{id}/delete-book")
+    public String deleteBookByComplaint(@PathVariable Long id,
+                                        @RequestParam(required = false) String comment,
+                                        Principal principal,
+                                        RedirectAttributes ra) {
+        Complaint c = findComplaint(id);
+        User moderator = userService.findByUsername(principal.getName());
+        String bookTitle = c.getTargetBookTitle();
+
+        Book book = c.getTargetBookId() != null
+                ? bookRepository.findById(c.getTargetBookId()).orElse(null)
+                : null;
+
+        if (book != null) {
+            User owner = book.getOwner();
+            reviewRepository.deleteByBookId(book.getId());
+            bookRepository.delete(book);
+
+            // Уведомляем автора жалобы и владельца книги
+            notificationService.sendNotification(owner.getUsername(),
+                    "Ваша книга удалена модератором",
+                    "«" + bookTitle + "» удалена по жалобе." +
+                            (comment != null && !comment.isBlank() ? " Причина: " + comment : ""),
+                    "/my-books");
+
+            ModerationLog bookLog = new ModerationLog();
+            bookLog.setModerator(moderator);
+            bookLog.setAction(ModerationLog.ActionType.BOOK_DELETED);
+            bookLog.setTargetUser(owner);
+            bookLog.setBookId(c.getTargetBookId());
+            bookLog.setBookTitle(bookTitle);
+            bookLog.setReason("Удаление по жалобе. " + (comment != null ? comment : ""));
+            bookLog.setCreatedAt(LocalDateTime.now());
+            logRepository.save(bookLog);
+        }
+
+        // Закрываем жалобу
+        c.setStatus(Complaint.ComplaintStatus.ACCEPTED);
+        c.setModeratorComment("Книга удалена. " + (comment != null ? comment : ""));
+        c.setResolvedBy(moderator);
+        c.setResolvedAt(LocalDateTime.now());
+        complaintRepository.save(c);
+
+        notificationService.sendNotification(c.getAuthor().getUsername(),
+                "Ваша жалоба удовлетворена",
+                "Книга «" + bookTitle + "» удалена из каталога.", "/notifications");
+
+        saveLog(moderator, ModerationLog.ActionType.COMPLAINT_ACCEPTED, c.getAuthor(),
+                "Книга удалена: " + bookTitle);
+
+        ra.addFlashAttribute("success", "Книга «" + bookTitle + "» удалена, жалоба закрыта.");
+        return "redirect:/moderator";
+    }
+
+    private Complaint findComplaint(Long id) {
+        return complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Жалоба не найдена: " + id));
     }
 
     private void saveLog(User moderator, ModerationLog.ActionType action,
