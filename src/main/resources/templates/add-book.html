@@ -5,6 +5,11 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
 <style>
+    html { background-image: none !important; background-color: #f8fafc !important; }
+    html::before { display: none !important; }
+</style>
+
+<style>
     /* ═══════════════════════════════════════════════════
        Страница добавления книги — Editorial style
        ═══════════════════════════════════════════════════ */
@@ -322,7 +327,7 @@
                                    onchange="updateProgress()">
                             <label class="genre-label"
                                    th:for="'genre_' + ${genre.name()}"
-                                   th:text="${genre.displayValue}">Жанр</label>
+                                   th:text="${genre.displayName}">Жанр</label>
                         </div>
                     </div>
                     <input type="hidden" name="genreFallback" id="genreFallback">

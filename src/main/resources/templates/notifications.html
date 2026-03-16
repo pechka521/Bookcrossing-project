@@ -127,7 +127,7 @@
     </div>
 
     <!-- Пустое состояние -->
-    <div th:if="${notifications == null || notifications.empty}" class="notif-empty">
+    <div th:if="${#lists.isEmpty(notifications)}" class="notif-empty">
         <i class="fas fa-bell-slash"></i>
         <p>Уведомлений пока нет</p>
         <a th:href="@{/}" class="btn btn-primary rounded-pill px-4">
@@ -136,7 +136,7 @@
     </div>
 
     <!-- Список уведомлений -->
-    <div th:unless="${notifications == null || notifications.empty}">
+    <div th:unless="${#lists.isEmpty(notifications)}">
         <th:block th:each="n : ${notifications}">
             <a th:href="${n.link != null && !n.link.isEmpty() ? n.link : '#'}"
                class="notif-item"

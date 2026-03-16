@@ -153,7 +153,7 @@
                       th:text="${c.resolvedBy != null ? '@' + c.resolvedBy.username : ''}"></span>
             </td>
         </tr>
-        <tr th:if="${complaints == null || complaints.empty}">
+        <tr th:if="${#lists.isEmpty(complaints)}">
             <td colspan="8" class="text-center text-muted py-4">Жалоб нет</td>
         </tr>
         </tbody>
@@ -192,7 +192,7 @@
             </td>
             <td class="text-muted small" th:text="${log.reason}"></td>
         </tr>
-        <tr th:if="${myLogs == null || myLogs.empty}">
+        <tr th:if="${#lists.isEmpty(myLogs)}">
             <td colspan="4" class="text-center text-muted py-3">Нет записей</td>
         </tr>
         </tbody>

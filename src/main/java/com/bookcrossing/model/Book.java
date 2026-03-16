@@ -4,17 +4,19 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.Getter;
 
 @Data
 @Entity
 @Table(name = "books")
 public class Book {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank(message = "Название книги не может быть пустым")
-    private String title;  // ← было пропущено
+    private String title;
 
     @NotBlank(message = "Автор обязателен")
     private String author;
@@ -34,6 +36,7 @@ public class Book {
     @JoinColumn(name = "user_id")
     private User owner;
 
+    @Getter
     public enum BookStatus {
         FREE("Свободна"),
         BUSY("Занята"),
@@ -41,7 +44,6 @@ public class Book {
 
         private final String displayValue;
         BookStatus(String displayValue) { this.displayValue = displayValue; }
-        public String getDisplayValue() { return displayValue; }
     }
 
     public String getImageDisplay() {

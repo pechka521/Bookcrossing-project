@@ -1,5 +1,8 @@
 package com.bookcrossing.model;
 
+import lombok.Getter;
+
+@Getter
 public enum BookGenre {
     FICTION("Художественная литература"),
     SCIENCE("Научная литература"),
@@ -10,13 +13,9 @@ public enum BookGenre {
     KIDS("Детские книги"),
     OTHER("Другое");
 
-    private final String displayValue;
+    private final String displayName;
 
-    BookGenre(String displayValue) {
-        this.displayValue = displayValue;
-    }
-
-    public String getDisplayValue() {
-        return displayValue;
+    BookGenre(String displayName) {
+        this.displayName = displayName;
     }
 }

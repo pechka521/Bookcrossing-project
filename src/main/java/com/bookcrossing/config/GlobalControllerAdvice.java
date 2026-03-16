@@ -17,7 +17,7 @@ public class GlobalControllerAdvice {
 
     public GlobalControllerAdvice(UserService userService,
                                   NotificationService notificationService) {
-        this.userService         = userService;
+        this.userService = userService;
         this.notificationService = notificationService;
     }
 
@@ -27,21 +27,30 @@ public class GlobalControllerAdvice {
     }
 
     @ModelAttribute("currentUser")
-    public User getCurrentUser() {
+    public User getCurrentUser(HttpServletRequest request) {
+        if (request.getRequestURI().startsWith("/api/")) return null;
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (isAuthenticated(auth)) {
+        if (!isAuthenticated(auth)) return null;
+        try {
             return userService.findByUsername(auth.getName());
+        } catch (Exception e) {
+            return null;
         }
-        return null;
     }
 
     @ModelAttribute("unreadNotifCount")
-    public long getUnreadNotifCount() {
+    public long getUnreadNotifCount(HttpServletRequest request) {
+        // Та же причина — пропускаем /api/** чтобы не ломать REST-запросы
+        if (request.getRequestURI().startsWith("/api/")) return 0L;
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (isAuthenticated(auth)) {
+        if (!isAuthenticated(auth)) return 0L;
+        try {
             return notificationService.getUnreadCount(auth.getName());
+        } catch (Exception e) {
+            return 0L;
         }
-        return 0L;
     }
 
     private boolean isAuthenticated(Authentication auth) {

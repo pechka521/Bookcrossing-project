@@ -21,9 +21,9 @@ import java.util.Map;
 @RequestMapping("/bookings")
 public class BookingController {
 
-    private final BookingRepository   bookingRepository;
-    private final BookRepository      bookRepository;
-    private final UserService         userService;
+    private final BookingRepository bookingRepository;
+    private final BookRepository    bookRepository;
+    private final UserService       userService;
     private final NotificationService notificationService;
 
     public BookingController(BookingRepository bookingRepository,
@@ -36,8 +36,7 @@ public class BookingController {
         this.notificationService = notificationService;
     }
 
-    // ── Запрос на бронирование ────────────────────────────────────────
-
+    /** Запрос на бронирование от читателя */
     @Transactional
     @PostMapping("/request")
     public String requestBooking(@RequestParam Long bookId,
@@ -69,7 +68,8 @@ public class BookingController {
         booking.setOwner(book.getOwner());
         booking.setStatus(BookingStatus.PENDING);
         if (message != null && !message.isBlank()) booking.setMessage(message.trim());
-        if (days != null && days > 0) booking.setBookedUntil(LocalDateTime.now().plusDays(days));
+        if (days != null && days > 0)
+            booking.setBookedUntil(LocalDateTime.now().plusDays(days));
         bookingRepository.save(booking);
 
         notificationService.sendNotification(
@@ -80,13 +80,11 @@ public class BookingController {
                 "/my-books"
         );
 
-        ra.addFlashAttribute("success",
-                "Запрос отправлен! Ждите ответа от владельца.");
+        ra.addFlashAttribute("success", "Запрос отправлен! Ждите ответа от владельца.");
         return "redirect:/";
     }
 
-    // ── Одобрить бронь ───────────────────────────────────────────────
-
+    /** Владелец одобряет заявку → книга BOOKED */
     @Transactional
     @PostMapping("/{id}/accept")
     public String acceptBooking(@PathVariable Long id,
@@ -94,7 +92,7 @@ public class BookingController {
                                 Principal principal, RedirectAttributes ra) {
         Booking booking = findPendingForOwner(id, principal.getName());
         if (booking == null) {
-            ra.addFlashAttribute("error", "Заявка не найдена или уже обработана.");
+            ra.addFlashAttribute("errorMessage", "Заявка не найдена или уже обработана.");
             return "redirect:/my-books";
         }
 
@@ -103,7 +101,6 @@ public class BookingController {
         booking.setRespondedAt(LocalDateTime.now());
         bookingRepository.save(booking);
 
-        // ← Теперь ставим BOOKED (Забронирована), не BUSY
         Book book = booking.getBook();
         book.setStatus(Book.BookStatus.BOOKED);
         bookRepository.save(book);
@@ -116,13 +113,13 @@ public class BookingController {
                 "/"
         );
 
-        ra.addFlashAttribute("success",
-                "Бронь одобрена для @" + booking.getRequester().getUsername() + ". Книга отмечена как «Забронирована».");
+        ra.addFlashAttribute("successMessage",
+                "Бронь одобрена для @" + booking.getRequester().getUsername() +
+                        ". Книга отмечена как «Забронирована».");
         return "redirect:/my-books";
     }
 
-    // ── Отклонить бронь ──────────────────────────────────────────────
-
+    /** Владелец отклоняет заявку */
     @Transactional
     @PostMapping("/{id}/reject")
     public String rejectBooking(@PathVariable Long id,
@@ -130,7 +127,7 @@ public class BookingController {
                                 Principal principal, RedirectAttributes ra) {
         Booking booking = findPendingForOwner(id, principal.getName());
         if (booking == null) {
-            ra.addFlashAttribute("error", "Заявка не найдена или уже обработана.");
+            ra.addFlashAttribute("errorMessage", "Заявка не найдена или уже обработана.");
             return "redirect:/my-books";
         }
 
@@ -147,30 +144,28 @@ public class BookingController {
                 "/"
         );
 
-        ra.addFlashAttribute("info", "Заявка отклонена.");
+        ra.addFlashAttribute("successMessage", "Заявка отклонена.");
         return "redirect:/my-books";
     }
 
-    // ── Завершить бронь (владелец отдал книгу) ───────────────────────
-
+    /** Владелец подтверждает передачу книги → книга BUSY */
     @Transactional
     @PostMapping("/{id}/complete")
     public String completeBooking(@PathVariable Long id,
                                   Principal principal, RedirectAttributes ra) {
         Booking booking = bookingRepository.findById(id).orElse(null);
         if (booking == null || !booking.getOwner().getUsername().equals(principal.getName())) {
-            ra.addFlashAttribute("error", "Бронь не найдена.");
+            ra.addFlashAttribute("errorMessage", "Бронь не найдена.");
             return "redirect:/my-books";
         }
         if (booking.getStatus() != BookingStatus.ACCEPTED) {
-            ra.addFlashAttribute("error", "Бронь не активна.");
+            ra.addFlashAttribute("errorMessage", "Бронь не активна.");
             return "redirect:/my-books";
         }
 
         booking.setStatus(BookingStatus.COMPLETED);
         bookingRepository.save(booking);
 
-        // Книга теперь "Занята" (передана пользователю)
         Book book = booking.getBook();
         book.setStatus(Book.BookStatus.BUSY);
         bookRepository.save(book);
@@ -182,17 +177,55 @@ public class BookingController {
                 "/"
         );
 
-        ra.addFlashAttribute("success", "Книга помечена как переданная.");
+        ra.addFlashAttribute("successMessage", "Книга помечена как переданная.");
         return "redirect:/my-books";
     }
 
-    // ── Отменить свой запрос ─────────────────────────────────────────
+    /**
+     * Владелец отменяет уже одобренную бронь → книга FREE.
+     * Например: читатель не пришёл, планы изменились.
+     */
+    @Transactional
+    @PostMapping("/{id}/release")
+    public String releaseBooking(@PathVariable Long id,
+                                 Principal principal, RedirectAttributes ra) {
+        Booking booking = bookingRepository.findById(id).orElse(null);
+        if (booking == null || !booking.getOwner().getUsername().equals(principal.getName())) {
+            ra.addFlashAttribute("errorMessage", "Бронь не найдена.");
+            return "redirect:/my-books";
+        }
+        if (booking.getStatus() != BookingStatus.ACCEPTED) {
+            ra.addFlashAttribute("errorMessage", "Бронь не активна.");
+            return "redirect:/my-books";
+        }
 
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        Book book = booking.getBook();
+        book.setStatus(Book.BookStatus.FREE);
+        bookRepository.save(book);
+
+        notificationService.sendNotification(
+                booking.getRequester().getUsername(),
+                "❌ Бронь отменена владельцем",
+                "Владелец отменил вашу бронь на «" + book.getTitle() + "». Книга снова свободна.",
+                "/"
+        );
+
+        ra.addFlashAttribute("successMessage",
+                "Бронь отменена. Книга «" + book.getTitle() + "» снова свободна.");
+        return "redirect:/my-books";
+    }
+
+    /** Читатель отменяет свою заявку */
     @Transactional
     @PostMapping("/{id}/cancel")
-    public String cancelBooking(@PathVariable Long id, Principal principal, RedirectAttributes ra) {
+    public String cancelBooking(@PathVariable Long id,
+                                Principal principal, RedirectAttributes ra) {
         Booking booking = bookingRepository.findById(id).orElse(null);
-        if (booking == null || !booking.getRequester().getUsername().equals(principal.getName())) {
+        if (booking == null ||
+                !booking.getRequester().getUsername().equals(principal.getName())) {
             ra.addFlashAttribute("error", "Заявка не найдена.");
             return "redirect:/";
         }
@@ -201,7 +234,6 @@ public class BookingController {
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
 
-        // Если бронь была одобрена — возвращаем книгу в СВОБОДНА
         if (wasAccepted) {
             Book book = booking.getBook();
             if (book.getStatus() == Book.BookStatus.BOOKED) {
@@ -214,10 +246,9 @@ public class BookingController {
         return "redirect:/";
     }
 
-    // ── API: активная бронь книги ────────────────────────────────────
-
     @GetMapping("/book/{bookId}/active")
     @ResponseBody
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getActiveBooking(@PathVariable Long bookId) {
         Book book = bookRepository.findById(bookId).orElse(null);
         if (book == null) return ResponseEntity.notFound().build();

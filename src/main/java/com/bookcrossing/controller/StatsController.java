@@ -50,7 +50,6 @@ public class StatsController {
         this.achievementRepository     = achievementRepository;
     }
 
-    /** Статистика текущего пользователя */
     @GetMapping("/users/me/stats")
     public ResponseEntity<AchievementService.UserStats> getMyStats(Principal principal) {
         User user = userService.findByUsername(principal.getName());
@@ -58,7 +57,6 @@ public class StatsController {
         return ResponseEntity.ok(achievementService.calculateStats(user));
     }
 
-    /** Статистика по username (публичная) */
     @GetMapping("/users/{username}/stats")
     public ResponseEntity<?> getUserStats(@PathVariable String username) {
         try {
@@ -69,130 +67,12 @@ public class StatsController {
         }
     }
 
-    /** Все достижения с флагом earned и featured */
     @GetMapping("/achievements")
     public ResponseEntity<List<AchievementService.AchievementDto>> getAchievements(Principal principal) {
         User user = userService.findByUsername(principal.getName());
         return ResponseEntity.ok(achievementService.getUserAchievements(user));
     }
 
-    /** Детализация: добавленные книги */
-    @GetMapping("/users/{username}/books-added")
-    public ResponseEntity<List<Map<String, Object>>> getBooksAdded(@PathVariable String username) {
-        try {
-            User user = userService.findByUsername(username);
-            List<Book> books = bookRepository.findByOwner(user);
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (Book b : books) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",     b.getId());
-                m.put("title",  b.getTitle());
-                m.put("author", b.getAuthor());
-                // genre is stored as String (not enum) in this project
-                m.put("genre",  b.getGenre() != null ? b.getGenre().toString() : "—");
-                m.put("status", b.getStatus().getDisplayValue());
-                m.put("image",  b.getImageDisplay());
-                result.add(m);
-            }
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /** Детализация: переданные книги (статус BUSY) */
-    @GetMapping("/users/{username}/books-given")
-    public ResponseEntity<List<Map<String, Object>>> getBooksGiven(@PathVariable String username) {
-        try {
-            User user = userService.findByUsername(username);
-            List<Book> given = bookRepository.findByOwner(user).stream()
-                    .filter(b -> b.getStatus() == Book.BookStatus.BUSY)
-                    .toList();
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (Book b : given) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",     b.getId());
-                m.put("title",  b.getTitle());
-                m.put("author", b.getAuthor());
-                m.put("genre",  b.getGenre() != null ? b.getGenre().toString() : "—");
-                m.put("image",  b.getImageDisplay());
-                bookingRepository.findActiveBookingForBook(b, BookingStatus.ACCEPTED).ifPresent(booking -> {
-                    m.put("bookedBy",    "@" + booking.getRequester().getUsername());
-                    m.put("bookedSince", booking.getRequestedAt().format(FMT));
-                    m.put("bookedUntil", booking.getBookedUntil() != null
-                            ? booking.getBookedUntil().format(FMT) : "не указано");
-                });
-                result.add(m);
-            }
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /** Детализация: написанные отзывы */
-    @GetMapping("/users/{username}/reviews")
-    public ResponseEntity<List<Map<String, Object>>> getReviews(@PathVariable String username) {
-        try {
-            User user = userService.findByUsername(username);
-            List<Review> reviews = reviewRepository.findByUserOrderByCreatedAtDesc(user);
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (Review r : reviews) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",        r.getId());
-                m.put("bookTitle", r.getBook() != null ? r.getBook().getTitle() : "—");
-                m.put("bookImage", r.getBook() != null ? r.getBook().getImageDisplay() : "");
-                m.put("bookId",    r.getBook() != null ? r.getBook().getId() : null);
-                m.put("rating",    r.getRating());
-                m.put("comment",   r.getComment());
-                m.put("date",      r.getCreatedAt() != null ? r.getCreatedAt().format(FMT) : "");
-                m.put("edited",    r.getUpdatedAt() != null);
-                result.add(m);
-            }
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /** Детализация: дни в системе */
-    @GetMapping("/users/{username}/timeline")
-    public ResponseEntity<Map<String, Object>> getTimeline(@PathVariable String username) {
-        try {
-            User user = userService.findByUsername(username);
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("registeredAt", user.getRegisteredAt() != null
-                    ? user.getRegisteredAt().format(FMT) : "—");
-            m.put("daysInSystem", achievementService.calculateStats(user).getDaysInSystem());
-            return ResponseEntity.ok(m);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /** Витрина достижений (публичная) */
-    @GetMapping("/users/{username}/featured-achievements")
-    public ResponseEntity<List<Map<String, Object>>> getFeaturedAchievements(
-            @PathVariable String username) {
-        try {
-            User user = userService.findByUsername(username);
-            var list = userAchievementRepository.findByUserAndFeaturedTrueOrderByEarnedAtDesc(user);
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (var ua : list) {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("code",        ua.getAchievement().getCode());
-                m.put("title",       ua.getAchievement().getTitle());
-                m.put("icon",        ua.getAchievement().getIcon());
-                m.put("description", ua.getAchievement().getDescription());
-                result.add(m);
-            }
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /** Переключить витрину достижения (добавить/убрать) */
     @Transactional
     @PostMapping("/achievements/{code}/toggle-featured")
     public ResponseEntity<Map<String, Object>> toggleFeatured(
@@ -227,6 +107,117 @@ public class StatsController {
             ));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/users/{username}/books-added")
+    public ResponseEntity<List<Map<String, Object>>> getBooksAdded(@PathVariable String username) {
+        try {
+            User user = userService.findByUsername(username);
+            List<Book> books = bookRepository.findByOwner(user);
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Book b : books) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",     b.getId());
+                m.put("title",  b.getTitle());
+                m.put("author", b.getAuthor());
+                m.put("genre",  b.getGenre() != null ? b.getGenre().toString() : "—");
+                m.put("status", b.getStatus().getDisplayValue());
+                m.put("image",  b.getImageDisplay());
+                result.add(m);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/users/{username}/books-given")
+    public ResponseEntity<List<Map<String, Object>>> getBooksGiven(@PathVariable String username) {
+        try {
+            User user = userService.findByUsername(username);
+            List<Book> given = bookRepository.findByOwner(user).stream()
+                    .filter(b -> b.getStatus() == Book.BookStatus.BUSY)
+                    .toList();
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Book b : given) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",     b.getId());
+                m.put("title",  b.getTitle());
+                m.put("author", b.getAuthor());
+                m.put("genre",  b.getGenre() != null ? b.getGenre().toString() : "—");
+                m.put("image",  b.getImageDisplay());
+                bookingRepository.findActiveBookingForBook(b, BookingStatus.ACCEPTED).ifPresent(booking -> {
+                    m.put("bookedBy",    "@" + booking.getRequester().getUsername());
+                    m.put("bookedSince", booking.getRequestedAt().format(FMT));
+                    m.put("bookedUntil", booking.getBookedUntil() != null
+                            ? booking.getBookedUntil().format(FMT) : "не указано");
+                });
+                result.add(m);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/users/{username}/reviews")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> getReviews(@PathVariable String username) {
+        try {
+            User user = userService.findByUsername(username);
+            List<Review> reviews = reviewRepository.findByUserOrderByCreatedAtDesc(user);
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Review r : reviews) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",        r.getId());
+                m.put("bookTitle", r.getBook() != null ? r.getBook().getTitle() : "—");
+                m.put("bookImage", r.getBook() != null ? r.getBook().getImageDisplay() : "");
+                m.put("bookId",    r.getBook() != null ? r.getBook().getId() : null);
+                m.put("rating",    r.getRating());
+                m.put("comment",   r.getComment());
+                m.put("date",      r.getCreatedAt() != null ? r.getCreatedAt().format(FMT) : "");
+                m.put("edited",    r.getUpdatedAt() != null);
+                result.add(m);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/users/{username}/timeline")
+    public ResponseEntity<Map<String, Object>> getTimeline(@PathVariable String username) {
+        try {
+            User user = userService.findByUsername(username);
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("registeredAt", user.getRegisteredAt() != null
+                    ? user.getRegisteredAt().format(FMT) : "—");
+            m.put("daysInSystem", achievementService.calculateStats(user).getDaysInSystem());
+            return ResponseEntity.ok(m);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/users/{username}/featured-achievements")
+    public ResponseEntity<List<Map<String, Object>>> getFeaturedAchievements(
+            @PathVariable String username) {
+        try {
+            User user = userService.findByUsername(username);
+            var list = userAchievementRepository.findByUserAndFeaturedTrueOrderByEarnedAtDesc(user);
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (var ua : list) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("code",        ua.getAchievement().getCode());
+                m.put("title",       ua.getAchievement().getTitle());
+                m.put("icon",        ua.getAchievement().getIcon());
+                m.put("description", ua.getAchievement().getDescription());
+                result.add(m);
+            }
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

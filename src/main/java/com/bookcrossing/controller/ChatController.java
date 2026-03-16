@@ -40,17 +40,21 @@ public class ChatController {
     public String messagesPage(Model model, Principal principal,
                                @RequestParam(required = false) Long partnerId) {
         User currentUser = userService.findByUsername(principal.getName());
-        List<ConversationDTO> conversations = chatService.getUserConversations(currentUser);
 
-        model.addAttribute("conversations", conversations);
-        model.addAttribute("currentUser",   currentUser);
-
+        // ИСПРАВЛЕНИЕ: сначала помечаем сообщения прочитанными, и только потом
+        // запрашиваем список диалогов — иначе ConversationDTO возвращает
+        // устаревший unreadCount и счётчик не сбрасывается на странице.
         if (partnerId != null && !currentUser.getId().equals(partnerId)) {
             User partner = userService.findById(partnerId);
-            model.addAttribute("activePartner", partner);
             chatService.markMessagesAsRead(currentUser, partner);
-            model.addAttribute("history", chatService.getChatHistory(currentUser.getId(), partnerId));
+            model.addAttribute("activePartner", partner);
+            model.addAttribute("history",
+                    chatService.getChatHistory(currentUser.getId(), partnerId));
         }
+
+        List<ConversationDTO> conversations = chatService.getUserConversations(currentUser);
+        model.addAttribute("conversations", conversations);
+        model.addAttribute("currentUser",   currentUser);
 
         return "messages";
     }
@@ -63,23 +67,18 @@ public class ChatController {
 
         Message savedMsg = chatService.saveMessage(sender.getId(), recipientId, content);
 
-        // ── Доставка сообщения получателю ──────────────────────
         messagingTemplate.convertAndSendToUser(
                 savedMsg.getRecipient().getUsername(),
                 "/queue/messages",
                 savedMsg
         );
 
-        // ── Доставка сообщения отправителю (чтобы сразу видел) ─
         messagingTemplate.convertAndSendToUser(
                 sender.getUsername(),
                 "/queue/messages",
                 savedMsg
         );
 
-        // ── Push-уведомление получателю ─────────────────────────
-        // Сохраняем в БД и отправляем через WebSocket на /queue/notifications
-        // layout.html покажет toast и обновит бейдж колокольчика
         String preview = content.length() > 50
                 ? content.substring(0, 50) + "…"
                 : content;

@@ -1,8 +1,13 @@
 package com.bookcrossing.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "user_achievements",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "achievement_id"}))
@@ -22,24 +27,6 @@ public class UserAchievement {
 
     private LocalDateTime earnedAt;
 
-    // Выставлено на витрину (максимум 3 на пользователя)
     @Column(nullable = false)
     private boolean featured = false;
-
-    // ── Getters / Setters ─────────────────────────────────────
-
-    public Long getId()                          { return id; }
-    public void setId(Long id)                   { this.id = id; }
-
-    public User getUser()                        { return user; }
-    public void setUser(User user)               { this.user = user; }
-
-    public Achievement getAchievement()          { return achievement; }
-    public void setAchievement(Achievement a)    { this.achievement = a; }
-
-    public LocalDateTime getEarnedAt()           { return earnedAt; }
-    public void setEarnedAt(LocalDateTime t)     { this.earnedAt = t; }
-
-    public boolean isFeatured()                  { return featured; }
-    public void setFeatured(boolean featured)    { this.featured = featured; }
 }

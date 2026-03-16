@@ -12,7 +12,6 @@
     <style>
         body { padding-top: 56px; margin: 0; }
 
-        /* ── Топ-бар ── */
         .top-navbar {
             background: rgba(255,255,255,0.97);
             backdrop-filter: blur(8px);
@@ -46,7 +45,6 @@
             border-radius: 50%; border: 2px solid #3b5bdb;
         }
 
-        /* ── Гамбургер ── */
         #menuToggle {
             display: block; position: fixed; top: 14px; left: 20px;
             z-index: 1000; -webkit-user-select: none; user-select: none;
@@ -61,10 +59,9 @@
             display: block; width: 30px; height: 3px; margin-bottom: 6px;
             position: relative; background: #333; border-radius: 3px;
             z-index: 1; transform-origin: 4px 0px;
-            transition:
-                    transform  .5s cubic-bezier(.77,.2,.05,1.0),
-                    background .5s cubic-bezier(.77,.2,.05,1.0),
-                    opacity    .55s ease;
+            transition: transform .5s cubic-bezier(.77,.2,.05,1.0),
+            background .5s cubic-bezier(.77,.2,.05,1.0),
+            opacity .55s ease;
         }
         #menuToggle span:first-child       { transform-origin: 0% 0%; }
         #menuToggle span:nth-last-child(2) { transform-origin: 0% 100%; }
@@ -78,7 +75,6 @@
             transform: rotate(-45deg) translate(0,-1px);
         }
 
-        /* ── Боковое меню ── */
         #menu {
             position: fixed; top: 0; left: 0; width: 290px; height: 100vh;
             padding: 96px 0 40px; margin: 0;
@@ -94,8 +90,7 @@
         #menuToggle input:checked ~ ul#menu { transform: translateX(0); }
 
         #menu li { border-bottom: 1px solid #f3f4f6; }
-        #menu li a,
-        #menu li button.menu-btn {
+        #menu li a, #menu li button.menu-btn {
             display: flex; align-items: center; gap: 14px;
             padding: 13px 26px; font-size: .98rem; font-weight: 500; color: #1a1a2e;
             text-decoration: none;
@@ -115,13 +110,11 @@
         .menu-head { padding: 6px 26px 8px; font-size: .7rem; font-weight: 700;
             text-transform: uppercase; letter-spacing: .1em; color: #9ca3af; }
 
-        /* Специальные ссылки для ролей */
         .menu-admin-link { background: linear-gradient(135deg,#1e3a5f,#3b5bdb) !important; color:#fff !important; }
         .menu-admin-link .menu-icon { color: #a5b4fc !important; }
         .menu-mod-link { background: #fef3c7 !important; color: #92400e !important; }
         .menu-mod-link .menu-icon { color: #d97706 !important; }
 
-        /* ── Оверлей ── */
         #menu-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,.30); z-index: 998; cursor: pointer;
@@ -129,7 +122,6 @@
         }
         @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
 
-        /* ── Toast ── */
         #toast-container {
             position: fixed; bottom: 24px; right: 24px;
             z-index: 9999; display: flex; flex-direction: column;
@@ -154,7 +146,7 @@
     <div id="toast-container"></div>
     <div id="menu-overlay" onclick="closeMenu()"></div>
 
-    <!-- ── Топ-бар ── -->
+    <!-- Топ-бар -->
     <div class="top-navbar">
         <span class="page-section-title" id="pageSectionTitle"></span>
         <div class="d-flex align-items-center gap-2" sec:authorize="isAuthenticated()">
@@ -179,13 +171,11 @@
                     <li><a class="dropdown-item" th:href="@{/my-books}"><i class="fas fa-book me-2 text-muted"></i>Мои книги</a></li>
                     <li><a class="dropdown-item" th:href="@{/messages}"><i class="fas fa-envelope me-2 text-muted"></i>Сообщения</a></li>
                     <li><a class="dropdown-item" th:href="@{/notifications}"><i class="fas fa-bell me-2 text-muted"></i>Уведомления</a></li>
-                    <!-- Панель модератора — только для mod/admin -->
                     <li th:if="${currentUser != null && currentUser.moderator}">
                         <a class="dropdown-item text-warning" th:href="@{/moderator}">
                             <i class="fas fa-shield-alt me-2"></i>Панель модератора
                         </a>
                     </li>
-                    <!-- Панель администратора — только для admin -->
                     <li th:if="${currentUser != null && currentUser.admin}">
                         <a class="dropdown-item text-primary" th:href="@{/admin}">
                             <i class="fas fa-cog me-2"></i>Панель администратора
@@ -202,7 +192,7 @@
         </div>
     </div>
 
-    <!-- ── Гамбургер + боковое меню ── -->
+    <!-- Гамбургер + боковое меню -->
     <nav role="navigation">
         <div id="menuToggle">
             <input type="checkbox" id="menuCheckbox"/>
@@ -219,10 +209,8 @@
                         <i class="fas fa-plus-circle menu-icon"></i>Добавить книгу
                     </a>
                 </li>
-
                 <li><hr class="menu-sep"></li>
                 <li><div class="menu-head">Аккаунт</div></li>
-
                 <li>
                     <a th:href="@{/my-books}" th:classappend="${currentUri == '/my-books'} ? 'menu-active' : ''">
                         <i class="fas fa-book menu-icon"></i>Мои книги
@@ -250,8 +238,6 @@
                                          : 'display:none;'"></span>
                     </a>
                 </li>
-
-                <!-- Панель модератора -->
                 <li th:if="${currentUser != null && currentUser.moderator}">
                     <hr class="menu-sep">
                     <div class="menu-head">Управление</div>
@@ -263,7 +249,6 @@
                         <i class="fas fa-shield-alt menu-icon"></i>Панель модератора
                     </a>
                 </li>
-                <!-- Панель администратора -->
                 <li th:if="${currentUser != null && currentUser.admin}">
                     <a th:href="@{/admin}"
                        th:classappend="${currentUri == '/admin'} ? 'menu-active' : ''"
@@ -271,7 +256,6 @@
                         <i class="fas fa-cog menu-icon"></i>Панель администратора
                     </a>
                 </li>
-
                 <li><hr class="menu-sep"></li>
                 <li>
                     <form th:action="@{/logout}" method="post" style="margin:0;">
@@ -293,7 +277,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script th:inline="javascript">
-        /* ── Заголовок раздела ── */
         (function(){
             var MAP = {
                 '/':              'Каталог книг',
@@ -310,7 +293,6 @@
             if (el) el.textContent = MAP[window.location.pathname] || document.title;
         })();
 
-        /* ── Оверлей ── */
         var menuCheckbox = document.getElementById('menuCheckbox');
         var overlay      = document.getElementById('menu-overlay');
         menuCheckbox.addEventListener('change', function(){
@@ -385,12 +367,21 @@
             var n=(parseInt(el.textContent)||0)+d;
             el.textContent=n; el.style.display=n>0?'inline-block':'none';
         }
+
+        /* ── Сброс счётчика уведомлений при открытии страницы /notifications ── */
         if(window.location.pathname==='/notifications'){
             ['bell-badge','menu-notif-badge'].forEach(function(id){
                 var el=document.getElementById(id);
                 if(el){el.textContent='0';el.style.display='none';}
             });
         }
+
+        /* ── Сброс счётчика сообщений при открытии страницы /messages ── */
+        if(window.location.pathname==='/messages'){
+            var msgEl=document.getElementById('menu-msg-badge');
+            if(msgEl){msgEl.textContent='0';msgEl.style.display='none';}
+        }
+
         function playNotifySound(){ var a=document.getElementById('notificationSound'); if(a)a.play().catch(function(){}); }
         function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 

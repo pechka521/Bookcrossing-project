@@ -119,7 +119,7 @@
           </form>
         </td>
       </tr>
-      <tr th:if="${books == null || books.empty}">
+      <tr th:if="${#lists.isEmpty(books)}">
         <td colspan="7" class="text-center text-muted py-3">Книги не найдены</td>
       </tr>
       </tbody>
@@ -239,7 +239,7 @@
         </td>
         <td class="text-muted small" th:text="${log.reason}"></td>
       </tr>
-      <tr th:if="${logs == null || logs.empty}">
+      <tr th:if="${#lists.isEmpty(logs)}">
         <td colspan="5" class="text-center text-muted py-3">Лог пуст</td>
       </tr>
       </tbody>

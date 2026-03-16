@@ -13,7 +13,6 @@
   .rank-badge { display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#3b5bdb15,#7048e815); border:1.5px solid #3b5bdb30; border-radius:50px; padding:5px 16px; font-size:.82rem; font-weight:700; color:#3b5bdb; margin-top:10px; }
   .section-title { font-size:1rem; font-weight:700; color:#1a1a2e; margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
-  /* ── Статистика ── */
   .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
   .stat-card { background:#fff; border-radius:18px; padding:20px 14px; text-align:center; border:1.5px solid #f1f5f9; box-shadow:0 2px 8px rgba(0,0,0,.04); cursor:pointer; transition:transform .2s, box-shadow .2s, border-color .2s; position:relative; overflow:hidden; }
   .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
@@ -31,7 +30,6 @@
   .stat-label { font-size:.78rem; color:#94a3b8; font-weight:500; }
   .click-hint { font-size:.62rem; color:#cbd5e1; margin-top:4px; font-style:italic; }
 
-  /* ── Детализация ── */
   .detail-panel { background:#fff; border-radius:20px; border:1.5px solid #e2e8f0; box-shadow:0 4px 20px rgba(0,0,0,.06); margin-top:16px; overflow:hidden; max-height:0; transition:max-height .4s ease, padding .3s; padding:0 24px; }
   .detail-panel.open { max-height:600px; padding:20px 24px; overflow-y:auto; }
   .detail-panel h5 { font-size:.9rem; font-weight:700; color:#1a1a2e; margin-bottom:14px; }
@@ -46,38 +44,24 @@
   .detail-review-comment { font-size:.82rem; color:#374151; margin-top:4px; line-height:1.4; }
   .detail-review-meta { font-size:.72rem; color:#94a3b8; margin-top:4px; }
 
-  /* ── Достижения — ИСПРАВЛЕННЫЙ ТУЛТИП ── */
   .achievements-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:10px; }
   .ach-card { border-radius:16px; padding:14px 8px; text-align:center; cursor:pointer; transition:transform .2s, box-shadow .2s; position:relative; border:2px solid transparent; }
   .ach-card.earned { background:linear-gradient(135deg,#fff8e1,#fff3cd); border-color:#f59e0b40; box-shadow:0 2px 10px rgba(245,158,11,.12); }
   .ach-card.earned:hover { transform:translateY(-3px) scale(1.05); box-shadow:0 8px 24px rgba(245,158,11,.2); }
   .ach-card.locked { background:#f8fafc; border-color:#e2e8f0; opacity:.65; }
   .ach-card.locked:hover { opacity:.85; transform:translateY(-1px); }
-  /* FEATURED badge */
   .ach-card.featured-card { box-shadow:0 0 0 2px #f59e0b, 0 4px 16px rgba(245,158,11,.3) !important; }
   .featured-star { position:absolute; top:-5px; right:-5px; background:#f59e0b; color:#fff; border-radius:50%; width:18px; height:18px; font-size:.65rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.2); }
   .ach-icon { font-size:2rem; display:block; margin-bottom:5px; }
   .ach-title { font-size:.68rem; font-weight:600; color:#374151; line-height:1.2; }
-  /* Кнопка витрины */
-  .feat-toggle-btn {
-    display:block; width:100%; margin-top:6px; padding:3px 0;
-    border-radius:6px; border:1px solid #e2e8f0; background:transparent;
-    font-size:.6rem; cursor:pointer; transition:all .15s; color:#94a3b8;
-  }
+  .feat-toggle-btn { display:block; width:100%; margin-top:6px; padding:3px 0; border-radius:6px; border:1px solid #e2e8f0; background:transparent; font-size:.6rem; cursor:pointer; transition:all .15s; color:#94a3b8; }
   .feat-toggle-btn.active { background:#f59e0b; border-color:#f59e0b; color:#fff; font-weight:600; }
   .feat-toggle-btn:disabled { opacity:.4; cursor:not-allowed; }
 
-  /* Витрина достижений на профиле */
   .featured-strip { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:4px; }
-  .featured-badge-big {
-    display:flex; align-items:center; gap:8px;
-    background:linear-gradient(135deg,#fffbeb,#fef3c7);
-    border:1.5px solid #f59e0b50; border-radius:12px; padding:8px 14px;
-    font-size:.82rem; font-weight:600; color:#92400e;
-  }
+  .featured-badge-big { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#fffbeb,#fef3c7); border:1.5px solid #f59e0b50; border-radius:12px; padding:8px 14px; font-size:.82rem; font-weight:600; color:#92400e; }
   .featured-badge-big .fb-icon { font-size:1.2rem; }
 
-  /* Глобальный тултип достижений */
   #achTooltip {
     position:fixed; z-index:99999;
     background:#1e293b; color:#fff;
@@ -87,9 +71,7 @@
     pointer-events:none;
     opacity:0; transition:opacity .18s;
     white-space:normal;
-    /* Стрелка сверху */
   }
-  /* Стрелка по умолчанию — сверху тултипа (тултип ниже карточки) */
   #achTooltip::before {
     content:'';
     position:absolute; bottom:100%; left:50%;
@@ -97,7 +79,6 @@
     border:7px solid transparent;
     border-bottom-color:#1e293b;
   }
-  /* Стрелка снизу тултипа (тултип выше карточки) */
   #achTooltip.arrow-below::before {
     bottom:auto; top:100%;
     border-bottom-color:transparent;
@@ -112,7 +93,6 @@
 
 <meta name="_csrf" th:content="${_csrf.token}">
 
-<!-- Глобальный тултип — вне любого контейнера -->
 <div id="achTooltip"></div>
 
 <div class="profile-wrap">
@@ -140,7 +120,7 @@
     </div>
   </div>
 
-  <!-- Витрина достижений (топ-3 выбранных) -->
+  <!-- Витрина достижений -->
   <div id="featuredStripWrap" class="mt-3" style="display:none;">
     <div class="section-title" style="font-size:.85rem; margin-bottom:8px;">⭐ На витрине</div>
     <div class="featured-strip" id="featuredStrip"></div>
@@ -151,26 +131,46 @@
     <div class="section-title">📊 Статистика</div>
     <div class="stats-grid">
       <div class="stat-card books-added" onclick="toggleDetail('booksAdded')" id="cardBooksAdded">
-        <span class="stat-icon">📚</span><div class="stat-num" id="statBooksAdded">—</div>
-        <div class="stat-label">Добавлено книг</div><div class="click-hint">нажмите ↓</div>
+        <span class="stat-icon">📚</span>
+        <div class="stat-num" id="statBooksAdded">—</div>
+        <div class="stat-label">Добавлено книг</div>
+        <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card books-given" onclick="toggleDetail('booksGiven')" id="cardBooksGiven">
-        <span class="stat-icon">🤝</span><div class="stat-num" id="statBooksGiven">—</div>
-        <div class="stat-label">Передано книг</div><div class="click-hint">нажмите ↓</div>
+        <span class="stat-icon">🤝</span>
+        <div class="stat-num" id="statBooksGiven">—</div>
+        <div class="stat-label">Передано книг</div>
+        <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card reviews" onclick="toggleDetail('reviews')" id="cardReviews">
-        <span class="stat-icon">⭐</span><div class="stat-num" id="statReviews">—</div>
-        <div class="stat-label">Отзывов</div><div class="click-hint">нажмите ↓</div>
+        <span class="stat-icon">⭐</span>
+        <div class="stat-num" id="statReviews">—</div>
+        <div class="stat-label">Отзывов</div>
+        <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card days" onclick="toggleDetail('days')" id="cardDays">
-        <span class="stat-icon">🗓️</span><div class="stat-num" id="statDays">—</div>
-        <div class="stat-label">Дней в системе</div><div class="click-hint">нажмите ↓</div>
+        <span class="stat-icon">🗓️</span>
+        <div class="stat-num" id="statDays">—</div>
+        <div class="stat-label">Дней в системе</div>
+        <div class="click-hint">нажмите ↓</div>
       </div>
     </div>
-    <div class="detail-panel" id="detailBooksAdded"><h5>📚 Добавленные книги</h5><div id="listBooksAdded"><div class="text-muted small py-2">Загрузка...</div></div></div>
-    <div class="detail-panel" id="detailBooksGiven"><h5>🤝 Переданные книги</h5><div id="listBooksGiven"><div class="text-muted small py-2">Загрузка...</div></div></div>
-    <div class="detail-panel" id="detailReviews"><h5>⭐ Мои отзывы</h5><div id="listReviews"><div class="text-muted small py-2">Загрузка...</div></div></div>
-    <div class="detail-panel" id="detailDays"><h5>🗓️ Хронология</h5><div id="listDays"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailBooksAdded">
+      <h5>📚 Добавленные книги</h5>
+      <div id="listBooksAdded"><div class="text-muted small py-2">Загрузка...</div></div>
+    </div>
+    <div class="detail-panel" id="detailBooksGiven">
+      <h5>🤝 Переданные книги</h5>
+      <div id="listBooksGiven"><div class="text-muted small py-2">Загрузка...</div></div>
+    </div>
+    <div class="detail-panel" id="detailReviews">
+      <h5>⭐ Мои отзывы</h5>
+      <div id="listReviews"><div class="text-muted small py-2">Загрузка...</div></div>
+    </div>
+    <div class="detail-panel" id="detailDays">
+      <h5>🗓️ Хронология</h5>
+      <div id="listDays"><div class="text-muted small py-2">Загрузка...</div></div>
+    </div>
   </div>
 
   <!-- Достижения -->
@@ -180,7 +180,9 @@
       <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size:.7rem;" id="achCount">…</span>
       <span th:if="${isOwnProfile}" class="text-muted small fw-normal">— нажмите «⭐ Витрина» на заработанных</span>
     </div>
-    <div class="achievements-grid" id="achievementsGrid"><div class="text-muted small">Загрузка...</div></div>
+    <div class="achievements-grid" id="achievementsGrid">
+      <div class="text-muted small">Загрузка...</div>
+    </div>
   </div>
 
   <!-- О себе -->
@@ -188,6 +190,7 @@
     <div class="section-title">💬 О себе</div>
     <p class="text-muted mb-0" style="white-space:pre-wrap;" th:text="${profileUser.aboutMe}"></p>
   </div>
+
 </div>
 
 <script th:inline="javascript">
@@ -198,57 +201,142 @@
   var csrfVal         = csrfToken ? csrfToken.getAttribute('content') : '';
   var loaded = {};
 
-  // ── Анимированный счётчик ─────────────────────────────
+  // ── Анимированный счётчик ──────────────────────────────────────────────
   function animateNum(el, target) {
-    var s=0, dur=600;
-    var step=function(ts){if(!s)s=ts;var p=Math.min((ts-s)/dur,1);el.textContent=Math.floor(p*target);if(p<1)requestAnimationFrame(step);else el.textContent=target;};
+    var s = 0, dur = 600;
+    var step = function(ts) {
+      if (!s) s = ts;
+      var p = Math.min((ts - s) / dur, 1);
+      el.textContent = Math.floor(p * target);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    };
     requestAnimationFrame(step);
   }
 
-  // ── Статистика ────────────────────────────────────────
+  // ── Загрузка статистики ────────────────────────────────────────────────
   async function loadStats() {
     try {
-      var r=await fetch('/api/users/'+profileUsername+'/stats');if(!r.ok)return;var s=await r.json();
-      animateNum(document.getElementById('statBooksAdded'),s.booksAdded);
-      animateNum(document.getElementById('statBooksGiven'),s.booksGiven);
-      animateNum(document.getElementById('statReviews'),s.reviewsWritten);
-      animateNum(document.getElementById('statDays'),s.daysInSystem);
-      if(s.rank)document.getElementById('rankText').textContent=s.rank;
-    }catch(e){}
+      var r = await fetch('/api/users/' + profileUsername + '/stats');
+      if (!r.ok) return;
+      var s = await r.json();
+      animateNum(document.getElementById('statBooksAdded'), s.booksAdded);
+      animateNum(document.getElementById('statBooksGiven'), s.booksGiven);
+      animateNum(document.getElementById('statReviews'), s.reviewsWritten);
+      animateNum(document.getElementById('statDays'), s.daysInSystem);
+      if (s.rank) document.getElementById('rankText').textContent = s.rank;
+    } catch(e) {}
   }
 
-  // ── Детализация ───────────────────────────────────────
+  // ── Детализация ────────────────────────────────────────────────────────
   function toggleDetail(type) {
-    var cap=function(s){return s.charAt(0).toUpperCase()+s.slice(1);};
-    var types=['booksAdded','booksGiven','reviews','days'];
-    types.forEach(function(t){
-      var panel=document.getElementById('detail'+cap(t));
-      var card=document.getElementById('card'+cap(t));
-      if(t===type){
-        if(panel.classList.contains('open')){panel.classList.remove('open');if(card)card.classList.remove('active-stat');}
-        else{panel.classList.add('open');if(card)card.classList.add('active-stat');if(!loaded[t]){loadDetail(t);loaded[t]=true;}}
-      }else{panel.classList.remove('open');if(card)card.classList.remove('active-stat');}
+    var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
+    var types = ['booksAdded', 'booksGiven', 'reviews', 'days'];
+    types.forEach(function(t) {
+      var panel = document.getElementById('detail' + cap(t));
+      var card  = document.getElementById('card'   + cap(t));
+      if (t === type) {
+        if (panel.classList.contains('open')) {
+          panel.classList.remove('open');
+          if (card) card.classList.remove('active-stat');
+        } else {
+          panel.classList.add('open');
+          if (card) card.classList.add('active-stat');
+          if (!loaded[t]) { loadDetail(t); loaded[t] = true; }
+        }
+      } else {
+        panel.classList.remove('open');
+        if (card) card.classList.remove('active-stat');
+      }
     });
   }
 
   async function loadDetail(type) {
-    var urls={booksAdded:'/api/users/'+profileUsername+'/books-added',booksGiven:'/api/users/'+profileUsername+'/books-given',reviews:'/api/users/'+profileUsername+'/reviews',days:'/api/users/'+profileUsername+'/timeline'};
-    var renders={booksAdded:renderBooksAdded,booksGiven:renderBooksGiven,reviews:renderReviews,days:renderTimeline};
-    try{var r=await fetch(urls[type]);if(!r.ok)return;var data=await r.json();renders[type](data);}catch(e){}
+    var urls = {
+      booksAdded: '/api/users/' + profileUsername + '/books-added',
+      booksGiven: '/api/users/' + profileUsername + '/books-given',
+      reviews:    '/api/users/' + profileUsername + '/reviews',
+      days:       '/api/users/' + profileUsername + '/timeline'
+    };
+    var renders = {
+      booksAdded: renderBooksAdded,
+      booksGiven: renderBooksGiven,
+      reviews:    renderReviews,
+      days:       renderTimeline
+    };
+    try {
+      var r = await fetch(urls[type]);
+      if (!r.ok) return;
+      var data = await r.json();
+      renders[type](data);
+    } catch(e) {}
   }
 
-  function stars(n){return'★'.repeat(n)+'☆'.repeat(5-n);}
+  function stars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
 
-  function renderBooksAdded(books){var el=document.getElementById('listBooksAdded');if(!books||!books.length){el.innerHTML='<p class="text-muted small">Книг ещё нет.</p>';return;}el.innerHTML=books.map(function(b){return'<div class="detail-book-item"><img class="detail-book-cover" src="'+(b.image||'/images/no-cover.png')+'" onerror="this.src=\'/images/no-cover.png\'" alt=""><div class="detail-book-info"><div class="detail-book-title">'+b.title+'</div><div class="detail-book-meta">'+b.author+' · '+b.genre+'</div><span class="badge rounded-pill '+(b.status==='Свободна'?'bg-success':'bg-secondary')+' mt-1" style="font-size:.65rem;">'+b.status+'</span></div></div>';}).join('');}
+  function renderBooksAdded(books) {
+    var el = document.getElementById('listBooksAdded');
+    if (!books || !books.length) { el.innerHTML = '<p class="text-muted small">Книг ещё нет.</p>'; return; }
+    el.innerHTML = books.map(function(b) {
+      return '<div class="detail-book-item">' +
+              '<img class="detail-book-cover" src="' + (b.image || '/images/no-cover.png') + '" onerror="this.src=\'/images/no-cover.png\'" alt="">' +
+              '<div class="detail-book-info">' +
+              '<div class="detail-book-title">' + b.title + '</div>' +
+              '<div class="detail-book-meta">' + b.author + ' · ' + b.genre + '</div>' +
+              '<span class="badge rounded-pill ' + (b.status === 'Свободна' ? 'bg-success' : 'bg-secondary') + ' mt-1" style="font-size:.65rem;">' + b.status + '</span>' +
+              '</div></div>';
+    }).join('');
+  }
 
-  function renderBooksGiven(books){var el=document.getElementById('listBooksGiven');if(!books||!books.length){el.innerHTML='<p class="text-muted small">Переданных книг нет.</p>';return;}el.innerHTML=books.map(function(b){return'<div class="detail-book-item"><img class="detail-book-cover" src="'+(b.image||'/images/no-cover.png')+'" onerror="this.src=\'/images/no-cover.png\'" alt=""><div class="detail-book-info"><div class="detail-book-title">'+b.title+'</div><div class="detail-book-meta">'+b.author+'</div>'+(b.bookedBy?'<div class="detail-book-meta">👤 '+b.bookedBy+(b.bookedSince?' · с '+b.bookedSince:'')+(b.bookedUntil?' · до '+b.bookedUntil:'')+'</div>':'')+'</div></div>';}).join('');}
+  function renderBooksGiven(books) {
+    var el = document.getElementById('listBooksGiven');
+    if (!books || !books.length) { el.innerHTML = '<p class="text-muted small">Переданных книг нет.</p>'; return; }
+    el.innerHTML = books.map(function(b) {
+      return '<div class="detail-book-item">' +
+              '<img class="detail-book-cover" src="' + (b.image || '/images/no-cover.png') + '" onerror="this.src=\'/images/no-cover.png\'" alt="">' +
+              '<div class="detail-book-info">' +
+              '<div class="detail-book-title">' + b.title + '</div>' +
+              '<div class="detail-book-meta">' + b.author + '</div>' +
+              (b.bookedBy ? '<div class="detail-book-meta">👤 ' + b.bookedBy +
+                      (b.bookedSince ? ' · с ' + b.bookedSince : '') +
+                      (b.bookedUntil ? ' · до ' + b.bookedUntil : '') + '</div>' : '') +
+              '</div></div>';
+    }).join('');
+  }
 
-  function renderReviews(reviews){var el=document.getElementById('listReviews');if(!reviews||!reviews.length){el.innerHTML='<p class="text-muted small">Отзывов ещё нет.</p>';return;}el.innerHTML=reviews.map(function(r){return'<div class="detail-review-item"><div class="d-flex align-items-center gap-2"><img src="'+(r.bookImage||'/images/no-cover.png')+'" alt="" style="width:28px;height:38px;object-fit:cover;border-radius:4px;"><div class="fw-semibold" style="font-size:.82rem;">'+r.bookTitle+'</div></div><div class="detail-review-stars mt-1">'+stars(r.rating)+'</div><div class="detail-review-comment">'+r.comment+'</div><div class="detail-review-meta">'+r.date+(r.edited?' (изменён)':'')+'</div></div>';}).join('');}
+  function renderReviews(reviews) {
+    var el = document.getElementById('listReviews');
+    if (!reviews || !reviews.length) { el.innerHTML = '<p class="text-muted small">Отзывов ещё нет.</p>'; return; }
+    el.innerHTML = reviews.map(function(r) {
+      return '<div class="detail-review-item">' +
+              '<div class="d-flex align-items-center gap-2">' +
+              '<img src="' + (r.bookImage || '/images/no-cover.png') + '" alt="" style="width:28px;height:38px;object-fit:cover;border-radius:4px;">' +
+              '<div class="fw-semibold" style="font-size:.82rem;">' + r.bookTitle + '</div>' +
+              '</div>' +
+              '<div class="detail-review-stars mt-1">' + stars(r.rating) + '</div>' +
+              '<div class="detail-review-comment">' + r.comment + '</div>' +
+              '<div class="detail-review-meta">' + r.date + (r.edited ? ' (изменён)' : '') + '</div>' +
+              '</div>';
+    }).join('');
+  }
 
-  function renderTimeline(data){document.getElementById('listDays').innerHTML='<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:12px;"><div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#a855f7);flex-shrink:0;margin-top:4px;"></div><div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дата регистрации</div><div style="font-size:.78rem;color:#94a3b8;">'+data.registeredAt+'</div></div></div><div style="padding:8px 0;display:flex;gap:12px;"><div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#3b5bdb,#7048e8);flex-shrink:0;margin-top:4px;"></div><div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дней в системе</div><div style="font-size:.78rem;color:#94a3b8;">'+data.daysInSystem+' дней</div></div></div>';}
+  function renderTimeline(data) {
+    document.getElementById('listDays').innerHTML =
+            '<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;display:flex;gap:12px;">' +
+            '<div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#a855f7);flex-shrink:0;margin-top:4px;"></div>' +
+            '<div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дата регистрации</div>' +
+            '<div style="font-size:.78rem;color:#94a3b8;">' + data.registeredAt + '</div></div>' +
+            '</div>' +
+            '<div style="padding:8px 0;display:flex;gap:12px;">' +
+            '<div style="width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#3b5bdb,#7048e8);flex-shrink:0;margin-top:4px;"></div>' +
+            '<div><div style="font-size:.85rem;font-weight:600;color:#1a1a2e;">Дней в системе</div>' +
+            '<div style="font-size:.78rem;color:#94a3b8;">' + data.daysInSystem + ' дней</div></div>' +
+            '</div>';
+  }
 
-  // ── Глобальный тултип (вне grid) ─────────────────────
+  // ── Глобальный тултип ─────────────────────────────────────────────────
   var tooltip = document.getElementById('achTooltip');
+
   function showTooltip(card, a) {
     var info = a.earned
             ? '<span class="tip-earned">✅ Получено' + (a.earnedAt ? ' ' + new Date(a.earnedAt).toLocaleDateString('ru-RU') : '') + '</span>'
@@ -261,42 +349,34 @@
 
     tooltip.classList.remove('visible', 'arrow-below');
 
-    // position:fixed — координаты ТОЛЬКО из viewport (без scrollY/scrollX)
     var rect = card.getBoundingClientRect();
-    var tw = 230;  // ширина тултипа
-    var th = 120;  // примерная высота тултипа
-
-    // Центрируем по горизонтали относительно карточки
+    var tw = 230, th = 120;
     var left = rect.left + rect.width / 2 - tw / 2;
-
-    // По умолчанию — показываем НИЖЕ карточки, стрелка СВЕРХУ
-    var top = rect.bottom + 10;
+    var top  = rect.bottom + 10;
     var arrowBelow = false;
 
-    // Если внизу не хватает места — показываем ВЫШЕ
     if (top + th > window.innerHeight - 8) {
       top = rect.top - th - 10;
-      arrowBelow = true;  // стрелка снизу тултипа (указывает вниз на карточку)
+      arrowBelow = true;
     }
-
-    // Не выходим за горизонтальные края
     if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
     if (left < 8) left = 8;
 
     tooltip.style.left = left + 'px';
-    tooltip.style.top  = top + 'px';
+    tooltip.style.top  = top  + 'px';
     if (arrowBelow) tooltip.classList.add('arrow-below');
     tooltip.classList.add('visible');
   }
+
   function hideTooltip() { tooltip.classList.remove('visible'); }
 
-  // ── Витрина достижений ────────────────────────────────
+  // ── Витрина ───────────────────────────────────────────────────────────
   var featuredCount = 0;
 
   async function toggleFeatured(code, btn) {
     var r = await fetch('/api/achievements/' + code + '/toggle-featured', {
-      method:'POST',
-      headers:{'X-CSRF-TOKEN': csrfVal, 'Content-Type':'application/json'}
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': csrfVal, 'Content-Type': 'application/json' }
     });
     var data = await r.json();
     if (!r.ok) {
@@ -304,7 +384,6 @@
       return;
     }
     featuredCount = data.featuredCount;
-    // Перезагружаем достижения
     loaded['achievements'] = false;
     await loadAchievements();
     showToastMsg(data.featured ? '⭐ Добавлено на витрину!' : 'Убрано с витрины', 'success');
@@ -312,37 +391,37 @@
 
   function showToastMsg(msg, type) {
     var el = document.createElement('div');
-    el.className = 'alert alert-' + (type||'info') + ' position-fixed rounded-4 shadow';
+    el.className = 'alert alert-' + (type || 'info') + ' position-fixed rounded-4 shadow';
     el.style.cssText = 'bottom:24px;right:24px;z-index:9999;font-size:.88rem;padding:10px 20px;';
     el.textContent = msg;
     document.body.appendChild(el);
-    setTimeout(function(){el.remove();}, 2500);
+    setTimeout(function() { el.remove(); }, 2500);
   }
 
   function renderFeaturedStrip(list) {
-    var wrap = document.getElementById('featuredStripWrap');
-    var strip = document.getElementById('featuredStrip');
-    var featured = list.filter(function(a){ return a.featured && a.earned; });
-    if (!featured.length) { wrap.style.display='none'; return; }
+    var wrap     = document.getElementById('featuredStripWrap');
+    var strip    = document.getElementById('featuredStrip');
+    var featured = list.filter(function(a) { return a.featured && a.earned; });
+    if (!featured.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'block';
-    strip.innerHTML = featured.map(function(a){
-      return '<div class="featured-badge-big"><span class="fb-icon">'+a.icon+'</span><span>'+a.title+'</span></div>';
+    strip.innerHTML = featured.map(function(a) {
+      return '<div class="featured-badge-big"><span class="fb-icon">' + a.icon + '</span><span>' + a.title + '</span></div>';
     }).join('');
   }
 
-  // ── Загрузка достижений ───────────────────────────────
+  // ── Загрузка достижений ───────────────────────────────────────────────
   async function loadAchievements() {
     try {
       var r = await fetch('/api/achievements');
-      if(!r.ok) return;
+      if (!r.ok) return;
       var list = await r.json();
       var grid = document.getElementById('achievementsGrid');
       grid.innerHTML = '';
-      var earned = list.filter(function(a){return a.earned;}).length;
-      featuredCount = list.filter(function(a){return a.featured;}).length;
+
+      var earned = list.filter(function(a) { return a.earned; }).length;
+      featuredCount = list.filter(function(a) { return a.featured; }).length;
       document.getElementById('achCount').textContent = earned + ' / ' + list.length;
 
-      // Обновляем витрину
       renderFeaturedStrip(list);
 
       list.forEach(function(a) {
@@ -363,9 +442,8 @@
                 '<div class="ach-title">' + a.title + '</div>' +
                 featBtn;
 
-        // Тултип через hover (глобальный)
-        card.addEventListener('mouseenter', function(e){ showTooltip(card, a); });
-        card.addEventListener('mouseleave', function(){ hideTooltip(); });
+        card.addEventListener('mouseenter', function() { showTooltip(card, a); });
+        card.addEventListener('mouseleave', function() { hideTooltip(); });
 
         grid.appendChild(card);
       });

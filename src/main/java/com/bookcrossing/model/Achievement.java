@@ -1,7 +1,11 @@
 package com.bookcrossing.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "achievements")
 public class Achievement {
@@ -11,55 +15,33 @@ public class Achievement {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String code;          // уникальный ключ, напр. "FIRST_BOOK"
+    private String code;
 
     @Column(nullable = false)
-    private String title;         // "Первопроходец"
+    private String title;
 
     @Column(columnDefinition = "TEXT")
-    private String description;   // "Добавил первую книгу"
+    private String description;
 
-    private String icon;          // эмодзи-иконка
+    private String icon;
 
     @Column(columnDefinition = "TEXT")
-    private String condition;     // текст условия для тултипа
+    private String condition;
 
-    private Integer conditionValue; // пороговое число (напр. 5 для "5 книг")
+    private Integer conditionValue;
 
     @Enumerated(EnumType.STRING)
-    private AchievementType type;  // тип события
+    private AchievementType type;
 
+    @Getter
     public enum AchievementType {
-        BOOKS_ADDED,        // книги добавлены в каталог
-        BOOKS_GIVEN,        // книги отмечены как "занята" (переданы)
-        REVIEWS_WRITTEN,    // написано отзывов
-        DAYS_IN_SYSTEM,     // дней в системе
-        COMPLAINTS_SENT     // жалоб отправлено (участие в модерации)
+        BOOKS_ADDED("Книги добавлены"),
+        BOOKS_GIVEN("Книги переданы"),
+        REVIEWS_WRITTEN("Написано отзывов"),
+        DAYS_IN_SYSTEM("Дней в системе"),
+        COMPLAINTS_SENT("Жалоб отправлено");
+
+        private final String displayName;
+        AchievementType(String n) { this.displayName = n; }
     }
-
-    // ── Getters / Setters ─────────────────────────────────────
-
-    public Long getId()                     { return id; }
-    public void setId(Long id)              { this.id = id; }
-
-    public String getCode()                 { return code; }
-    public void setCode(String code)        { this.code = code; }
-
-    public String getTitle()                { return title; }
-    public void setTitle(String title)      { this.title = title; }
-
-    public String getDescription()          { return description; }
-    public void setDescription(String d)    { this.description = d; }
-
-    public String getIcon()                 { return icon; }
-    public void setIcon(String icon)        { this.icon = icon; }
-
-    public String getCondition()            { return condition; }
-    public void setCondition(String c)      { this.condition = c; }
-
-    public Integer getConditionValue()      { return conditionValue; }
-    public void setConditionValue(Integer v){ this.conditionValue = v; }
-
-    public AchievementType getType()        { return type; }
-    public void setType(AchievementType t)  { this.type = t; }
 }

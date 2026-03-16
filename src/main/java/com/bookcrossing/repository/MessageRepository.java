@@ -3,6 +3,7 @@ package com.bookcrossing.repository;
 import com.bookcrossing.model.Message;
 import com.bookcrossing.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -20,5 +21,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findAllByUser(@Param("user") User user);
 
     // Количество непрочитанных сообщений от конкретного отправителя
-    long countByRecipientAndSenderAndIsReadFalse(User recipient, User sender);
+    long countByRecipientAndSenderAndReadFalse(User recipient, User sender);
+    List<Message> findByRecipientAndSenderAndReadFalse(User recipient, User sender);
+
+    @Modifying
+    @Query("UPDATE Message m SET m.read = true " +
+            "WHERE m.recipient = :recipient AND m.sender = :sender AND m.read = false")
+    void markMessagesAsRead(@Param("recipient") User recipient,
+                            @Param("sender") User sender);
 }

@@ -29,6 +29,10 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
     }
 
+    public boolean existsByUsername(String username) {
+        return userRepository.findByUsername(username).isPresent();
+    }
+
     public User findById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден id=" + id));

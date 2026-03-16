@@ -52,7 +52,7 @@ public class AuthController {
         }
 
         // 4. Проверка: Занят ли логин?
-        if (userService.findByUsername(user.getUsername()) != null) {
+        if (userService.existsByUsername(user.getUsername())) {
             model.addAttribute("error", "Пользователь с таким именем уже существует!");
             return "register";
         }

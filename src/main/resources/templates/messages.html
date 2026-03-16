@@ -45,7 +45,6 @@
                     <div class="px-3 py-2 rounded-3 shadow-sm" style="max-width:72%;word-break:break-word;"
                          th:classappend="${msg.sender.id == currentUser.id} ? 'bg-primary text-white' : 'bg-white'">
                         <p class="mb-1 small" th:text="${msg.content}">Text</p>
-                        <!-- Исправление #2: timestamp теперь строка ISO благодаря @JsonFormat -->
                         <small class="opacity-75" style="font-size:0.68rem;" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}">10:00</small>
                     </div>
                 </div>
@@ -56,7 +55,8 @@
                     <input type="hidden" id="recipientId" th:value="${activePartner.id}">
                     <input type="text" id="messageInput" class="form-control rounded-pill"
                            placeholder="Написать сообщение..." autocomplete="off">
-                    <button type="submit" class="btn btn-primary rounded-circle flex-shrink-0" style="width:42px;height:42px;padding:0;">
+                    <button type="submit" class="btn btn-primary rounded-circle flex-shrink-0"
+                            style="width:42px;height:42px;padding:0;">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </form>
@@ -66,13 +66,10 @@
 </div>
 
 <script th:if="${activePartner}" th:inline="javascript">
-    var recipientId = document.getElementById('recipientId').value;
+    var recipientId   = document.getElementById('recipientId').value;
     var currentUserId = /*[[${currentUser.username}]]*/ '';
 
-    // *** ИСПРАВЛЕНИЕ #2 ***
-    // Переиспользуем window.globalStompClient из layout.html.
-    // Раньше messages.html создавал ВТОРОЕ WS-соединение с дублирующей подпиской.
-    // Из-за двух соединений сообщения иногда уходили не в тот обработчик.
+    // Подписка на входящие — через globalStompClient из layout.html
     function setupChatSubscription(client) {
         client.subscribe('/user/queue/messages', function (out) {
             var msg = JSON.parse(out.body);
@@ -91,9 +88,12 @@
         };
     }
 
+    // Отправка — напрямую через globalStompClient
+    // STOMP.js буферизует send() внутри, пока соединение устанавливается —
+    // поэтому достаточно проверить только что globalStompClient не null
     function sendMessage(event) {
         event.preventDefault();
-        var input = document.getElementById('messageInput');
+        var input   = document.getElementById('messageInput');
         var content = input.value.trim();
         if (!content || !window.globalStompClient) return;
         window.globalStompClient.send("/app/chat.sendMessage", {},
@@ -102,13 +102,10 @@
     }
 
     function renderMessage(message) {
-        var isMe = (message.sender.username === currentUserId);
+        var isMe       = (message.sender.username === currentUserId);
         var alignClass = isMe ? 'justify-content-end' : 'justify-content-start';
         var colorClass = isMe ? 'bg-primary text-white' : 'bg-white';
 
-        // *** ИСПРАВЛЕНИЕ #2 ***
-        // message.timestamp теперь строка ISO "2024-01-15T10:30:00" (благодаря @JsonFormat)
-        // new Date("2024-01-15T10:30:00") — корректно парсится во всех браузерах
         var timeStr = '';
         try {
             var d = new Date(message.timestamp);

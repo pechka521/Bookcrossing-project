@@ -6,6 +6,7 @@ import com.bookcrossing.model.User;
 import com.bookcrossing.repository.MessageRepository;
 import com.bookcrossing.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -51,7 +52,7 @@ public class ChatService {
 
             // Если диалог с этим партнером уже обработан (мы идем от новых к старым), пропускаем
             if (!conversations.containsKey(partner.getId())) {
-                long unread = messageRepository.countByRecipientAndSenderAndIsReadFalse(currentUser, partner);
+                long unread = messageRepository.countByRecipientAndSenderAndReadFalse(currentUser, partner);
                 conversations.put(partner.getId(), new ConversationDTO(
                         partner,
                         m.getContent(),
@@ -63,13 +64,8 @@ public class ChatService {
         return new ArrayList<>(conversations.values());
     }
 
+    @Transactional
     public void markMessagesAsRead(User recipient, User sender) {
-        List<Message> history = messageRepository.findChatHistory(recipient, sender);
-        history.stream()
-                .filter(m -> m.getRecipient().equals(recipient) && !m.isRead())
-                .forEach(m -> {
-                    m.setRead(true);
-                    messageRepository.save(m);
-                });
+        messageRepository.markMessagesAsRead(recipient, sender);
     }
 }

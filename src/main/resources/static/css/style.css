@@ -1,5 +1,5 @@
 :root {
-    --color-bg: #f7f7f5;
+    --color-bg: #ffffff;
     --color-white: #ffffff;
     --color-accent: #3b5bdb;
     --color-text: #1a1a2e;
@@ -12,92 +12,192 @@
     --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
 }
 
+/* ИСПРАВЛЕНИЕ #5: Добавляем background.jpg на все страницы.
+   Ранее фон был прозрачным (alpha=0) — теперь картинка видна,
+   но смягчена полупрозрачным белым оверлеем через html::before. */
+html {
+    background: url('/images/background.jpg') center center / cover fixed;
+    min-height: 100%;
+}
+
+html::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.82);
+    z-index: 0;
+    pointer-events: none;
+}
+
 body {
-    background: var(--color-bg);
+    background: transparent;
     color: var(--color-text);
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px; line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
 .btn-rounded-lg {
-    border-radius: 50px !important; padding: 10px 28px;
-    font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em;
+    border-radius: 50px !important;
+    padding: 10px 28px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     transition: all 0.2s ease;
 }
-.btn-rounded-lg:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,91,219,0.25); }
+.btn-rounded-lg:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59,91,219,0.25);
+}
 
-.custom-title { font-size: 2rem; font-weight: 700; color: var(--color-text); letter-spacing: -0.03em; padding-top: 16px; }
+.custom-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.03em;
+    padding-top: 16px;
+}
 
 /* === КАРТОЧКИ КНИГ === */
 .book-card {
-    background: var(--color-white); border-radius: var(--radius);
-    border: 1px solid var(--color-border); box-shadow: var(--shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; height: 100%;
+    background: var(--color-white);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    height: 100%;
 }
-.book-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.book-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
 .book-card .card-img-container {
-    height: 200px; background: var(--color-bg);
-    display: flex; align-items: center; justify-content: center;
-    padding: 12px; border-bottom: 1px solid var(--color-border);
+    height: 200px;
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
 }
-.book-card img.card-img-top { max-height:100%; max-width:100%; width:auto; height:auto; object-fit:contain; }
+.book-card img.card-img-top {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
 .book-card .card-body { padding: 0.9rem; }
-.book-card .card-title { font-size:0.95rem; font-weight:700; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.book-card .card-text { font-size:0.82rem; color:var(--color-muted); }
-.book-card .card-footer { background:transparent; border-top:1px solid var(--color-border); padding:0.6rem 0.9rem; }
-.profile-avatar { width:150px; height:150px; object-fit:cover; border:4px solid #fff; box-shadow:0 0 0 2px var(--color-accent); border-radius:50%; }
-.status-badge { position:absolute; top:10px; right:10px; font-size:0.7rem; padding:4px 8px; border-radius:20px; }
+.book-card .card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.book-card .card-text { font-size: 0.82rem; color: var(--color-muted); }
+.book-card .card-footer {
+    background: transparent;
+    border-top: 1px solid var(--color-border);
+    padding: 0.6rem 0.9rem;
+}
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 2px var(--color-accent);
+    border-radius: 50%;
+}
+.status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 20px;
+}
 
-/* ============================
-   ЗВЁЗДНЫЙ РЕЙТИНГ (Исправление #5)
-   ============================ */
-
-/* Отображение в карточках */
-.book-rating-display { display:flex; align-items:center; gap:2px; font-size:0.85rem; }
+/* === ЗВЁЗДНЫЙ РЕЙТИНГ === */
+.book-rating-display {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.85rem;
+}
 .book-rating-display .star { color: var(--color-star); }
 .book-rating-display .star-empty { color: #d1d5db; }
 
-/* Интерактивный star-rating для формы отзыва */
-/* CSS-only реализация, основанная на предоставленном примере (direction:rtl + :checked ~ label) */
 .star-rating-group {
     display: inline-flex;
-    flex-direction: row-reverse; /* Обратный порядок — ключ к CSS-only hover */
+    flex-direction: row-reverse;
     gap: 4px;
     font-size: 0;
 }
 .star-rating-group > input[type="radio"] { display: none; }
 .star-rating-group > label {
-    display: inline-block; width: 2rem; height: 2rem;
-    font-size: 2rem; line-height: 1;
-    cursor: pointer; color: #d1d5db;
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #d1d5db;
     transition: color 0.15s ease, transform 0.1s ease;
 }
-.star-rating-group > label::before { content: "\2605"; /* ★ */ }
-/* Звёзды при выборе: текущая и все левее (из-за rtl — это :checked ~ label) */
+.star-rating-group > label::before { content: "\2605"; }
 .star-rating-group > input:checked ~ label,
 .star-rating-group > label:hover,
 .star-rating-group > label:hover ~ label {
-    color: var(--color-star); transform: scale(1.1);
+    color: var(--color-star);
+    transform: scale(1.1);
 }
-/* Сброс при ховере по группе, потом подсветка нужных */
 .star-rating-group:hover > label { color: #d1d5db; transform: scale(1); }
 .star-rating-group:hover > label:hover,
-.star-rating-group:hover > label:hover ~ label { color: var(--color-star); transform: scale(1.1); }
+.star-rating-group:hover > label:hover ~ label {
+    color: var(--color-star);
+    transform: scale(1.1);
+}
 
-/* === ТОСТЫ — УВЕДОМЛЕНИЯ (Исправление #3) === */
+/* === ТОСТЫ === */
 #toast-container {
-    position: fixed; bottom: 24px; right: 24px;
-    z-index: 9999; display: flex; flex-direction: column;
-    gap: 10px; max-width: 320px;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 320px;
 }
 .toast-item {
-    background: var(--color-white); border: 1px solid var(--color-border);
-    border-left: 4px solid var(--color-accent); border-radius: var(--radius);
-    padding: 14px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-    animation: slideIn 0.3s ease; cursor: pointer;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    animation: slideIn 0.3s ease;
+    cursor: pointer;
 }
 .toast-item:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.16); }
-.toast-item .toast-title { font-weight: 700; font-size: 0.9rem; color: var(--color-text); margin-bottom: 2px; }
+.toast-item .toast-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    margin-bottom: 2px;
+}
 .toast-item .toast-body { font-size: 0.83rem; color: var(--color-muted); }
-@keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
-@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(20px); }
+}

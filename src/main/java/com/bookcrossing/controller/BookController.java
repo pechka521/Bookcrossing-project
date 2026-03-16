@@ -73,13 +73,18 @@ public class BookController {
                           @RequestParam(required = false) String query,
                           @RequestParam(required = false) String genre) {
         User user = userService.findByUsername(principal.getName());
-        model.addAttribute("books",        bookService.getMyBooks(user, query, genre));
-        model.addAttribute("genres",       BookGenre.values());
-        model.addAttribute("selectedGenre", genre);
-        model.addAttribute("searchQuery",  query);
+        model.addAttribute("books",          bookService.getMyBooks(user, query, genre));
+        model.addAttribute("genres",         BookGenre.values());
+        model.addAttribute("selectedGenre",  genre);
+        model.addAttribute("searchQuery",    query);
+        // Входящие заявки (ждут одобрения)
         model.addAttribute("pendingBookings",
                 bookingRepository.findByOwnerAndStatusOrderByRequestedAtDesc(
                         user, BookingStatus.PENDING));
+        // Одобренные брони (книга забронирована, ещё не передана)
+        model.addAttribute("acceptedBookings",
+                bookingRepository.findByOwnerAndStatusOrderByRequestedAtDesc(
+                        user, BookingStatus.ACCEPTED));
         return "my-books";
     }
 
