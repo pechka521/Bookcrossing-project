@@ -84,7 +84,7 @@ class AuthControllerTest {
         void usernameTaken_returnsError() {
             User existing = new User();
             existing.setId(99L);
-            when(userService.findByUsername("newuser")).thenReturn(existing);
+            when(userService.existsByUsername("newuser")).thenReturn(true);
 
             String view = authController.registerUser(user, "ValidPass1", model);
 
@@ -96,8 +96,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Успешная регистрация — редирект на /login?success")
         void success_redirectsToLogin() {
-            when(userService.findByUsername("newuser")).thenReturn(null);
-
+            when(userService.existsByUsername("newuser")).thenReturn(false);
             String view = authController.registerUser(user, "ValidPass1", model);
 
             assertThat(view).isEqualTo("redirect:/login?success");

@@ -15,7 +15,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -37,16 +36,16 @@ class BookingControllerTest {
     @Mock NotificationService notificationService;
     @InjectMocks BookingController bookingController;
 
-    private User  owner;
-    private User  requester;
-    private Book  book;
+    private User      owner;
+    private User      requester;
+    private Book      book;
     private Principal ownerPrincipal;
     private Principal requesterPrincipal;
     private RedirectAttributes ra;
 
     @BeforeEach
     void setUp() {
-        owner = new User(); owner.setId(1L); owner.setUsername("owner");
+        owner     = new User(); owner.setId(1L);     owner.setUsername("owner");
         requester = new User(); requester.setId(2L); requester.setUsername("requester");
 
         book = new Book(); book.setId(10L); book.setTitle("Test Book");
@@ -58,6 +57,7 @@ class BookingControllerTest {
     }
 
     // ─── requestBooking ───────────────────────────────────────────────────────
+    // Контроллер использует ключ "error" во всех ошибках requestBooking
 
     @Nested
     @DisplayName("requestBooking")
@@ -86,7 +86,7 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Бронирование своей книги — ошибка, redirect:/")
+        @DisplayName("Бронирование своей книги — error, redirect:/")
         void ownBook_errorRedirect() {
             when(userService.findByUsername("owner")).thenReturn(owner);
             when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
@@ -99,7 +99,7 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Книга не FREE — ошибка")
+        @DisplayName("Книга не FREE — error (requestBooking использует 'error')")
         void bookNotFree_errorRedirect() {
             book.setStatus(Book.BookStatus.BUSY);
             when(userService.findByUsername("requester")).thenReturn(requester);
@@ -113,7 +113,7 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Уже есть PENDING заявка — ошибка")
+        @DisplayName("Уже есть PENDING заявка — error")
         void duplicatePending_errorRedirect() {
             when(userService.findByUsername("requester")).thenReturn(requester);
             when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
@@ -170,6 +170,7 @@ class BookingControllerTest {
     }
 
     // ─── acceptBooking ────────────────────────────────────────────────────────
+    // Контроллер использует ключ "errorMessage" во всех ошибках acceptBooking
 
     @Nested
     @DisplayName("acceptBooking")
@@ -191,38 +192,43 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Заявка не найдена — ошибка")
+        @DisplayName("Заявка не найдена — errorMessage")
         void notFound_error() {
             when(bookingRepository.findById(99L)).thenReturn(Optional.empty());
+
             String redirect = bookingController.acceptBooking(99L, null, ownerPrincipal, ra);
+
             assertThat(redirect).isEqualTo("redirect:/my-books");
-            verify(ra).addFlashAttribute(eq("error"), any());
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
-        @DisplayName("Чужой владелец — возвращает ошибку")
+        @DisplayName("Чужой владелец — errorMessage")
         void wrongOwner_error() {
             Booking booking = pendingBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
             String redirect = bookingController.acceptBooking(1L, null, requesterPrincipal, ra);
+
             assertThat(redirect).isEqualTo("redirect:/my-books");
-            verify(ra).addFlashAttribute(eq("error"), any());
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
-        @DisplayName("Заявка не PENDING — возвращает ошибку")
+        @DisplayName("Заявка не PENDING — errorMessage")
         void alreadyAccepted_error() {
-            Booking booking = acceptedBooking();
-            // acceptedBooking уже ACCEPTED, а метод ищет PENDING
+            Booking booking = acceptedBooking(); // уже ACCEPTED, findPendingForOwner вернёт null
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-            // Владелец совпадает, но статус не PENDING — findPendingForOwner вернёт null
+
             String redirect = bookingController.acceptBooking(1L, null, ownerPrincipal, ra);
+
             assertThat(redirect).isEqualTo("redirect:/my-books");
-            verify(ra).addFlashAttribute(eq("error"), any());
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
     }
 
     // ─── rejectBooking ────────────────────────────────────────────────────────
+    // Контроллер использует ключ "errorMessage" во всех ошибках rejectBooking
 
     @Nested
     @DisplayName("rejectBooking")
@@ -242,11 +248,13 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Не найдена — ошибка")
+        @DisplayName("Не найдена — errorMessage")
         void notFound_error() {
             when(bookingRepository.findById(99L)).thenReturn(Optional.empty());
-            String redirect = bookingController.rejectBooking(99L, null, ownerPrincipal, ra);
-            verify(ra).addFlashAttribute(eq("error"), any());
+
+            bookingController.rejectBooking(99L, null, ownerPrincipal, ra);
+
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
@@ -273,6 +281,7 @@ class BookingControllerTest {
     }
 
     // ─── completeBooking ──────────────────────────────────────────────────────
+    // Контроллер использует ключ "errorMessage" во всех ошибках completeBooking
 
     @Nested
     @DisplayName("completeBooking")
@@ -293,37 +302,41 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Бронь не ACCEPTED — ошибка")
+        @DisplayName("Бронь не ACCEPTED — errorMessage")
         void notAccepted_error() {
             Booking booking = pendingBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-            String redirect = bookingController.completeBooking(1L, ownerPrincipal, ra);
-            verify(ra).addFlashAttribute(eq("error"), any());
+
+            bookingController.completeBooking(1L, ownerPrincipal, ra);
+
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
-        @DisplayName("Бронь не найдена — ошибка")
+        @DisplayName("Бронь не найдена — errorMessage")
         void notFound_error() {
             when(bookingRepository.findById(99L)).thenReturn(Optional.empty());
+
             bookingController.completeBooking(99L, ownerPrincipal, ra);
-            verify(ra).addFlashAttribute(eq("error"), any());
+
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
-        @DisplayName("Чужой владелец — ошибка")
+        @DisplayName("Чужой владелец — errorMessage")
         void wrongOwner_error() {
             Booking booking = acceptedBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
-            // requesterPrincipal != owner
             bookingController.completeBooking(1L, requesterPrincipal, ra);
 
-            verify(ra).addFlashAttribute(eq("error"), any());
-            assertThat(booking.getStatus()).isEqualTo(BookingStatus.ACCEPTED); // не изменился
+            verify(ra).addFlashAttribute(eq("errorMessage"), any());
+            assertThat(booking.getStatus()).isEqualTo(BookingStatus.ACCEPTED);
         }
     }
 
     // ─── releaseBooking ───────────────────────────────────────────────────────
+    // Контроллер использует ключ "errorMessage" во всех ошибках releaseBooking
 
     @Nested
     @DisplayName("releaseBooking")
@@ -347,15 +360,17 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Бронь не найдена — ошибка")
+        @DisplayName("Бронь не найдена — errorMessage")
         void notFound_error() {
             when(bookingRepository.findById(99L)).thenReturn(Optional.empty());
+
             bookingController.releaseBooking(99L, ownerPrincipal, ra);
+
             verify(ra).addFlashAttribute(eq("errorMessage"), any());
         }
 
         @Test
-        @DisplayName("Чужой владелец — ошибка")
+        @DisplayName("Чужой владелец — errorMessage")
         void wrongOwner_error() {
             Booking booking = acceptedBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
@@ -363,11 +378,11 @@ class BookingControllerTest {
             bookingController.releaseBooking(1L, requesterPrincipal, ra);
 
             verify(ra).addFlashAttribute(eq("errorMessage"), any());
-            assertThat(booking.getStatus()).isEqualTo(BookingStatus.ACCEPTED); // не изменился
+            assertThat(booking.getStatus()).isEqualTo(BookingStatus.ACCEPTED);
         }
 
         @Test
-        @DisplayName("Бронь не ACCEPTED (PENDING) — ошибка")
+        @DisplayName("Бронь не ACCEPTED (PENDING) — errorMessage")
         void notAccepted_error() {
             Booking booking = pendingBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
@@ -379,7 +394,7 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Бронь не ACCEPTED (COMPLETED) — ошибка")
+        @DisplayName("Бронь не ACCEPTED (COMPLETED) — errorMessage")
         void completedBooking_error() {
             Booking booking = pendingBooking();
             booking.setStatus(BookingStatus.COMPLETED);
@@ -392,6 +407,7 @@ class BookingControllerTest {
     }
 
     // ─── cancelBooking ────────────────────────────────────────────────────────
+    // Контроллер использует ключ "error" во всех ошибках cancelBooking
 
     @Nested
     @DisplayName("cancelBooking")
@@ -423,32 +439,35 @@ class BookingControllerTest {
         }
 
         @Test
-        @DisplayName("Чужая заявка — ошибка")
+        @DisplayName("Чужая заявка — error (cancelBooking использует 'error')")
         void wrongUser_error() {
             Booking booking = pendingBooking();
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
+
             bookingController.cancelBooking(1L, ownerPrincipal, ra);
+
             verify(ra).addFlashAttribute(eq("error"), any());
         }
 
         @Test
-        @DisplayName("Заявка не найдена — ошибка")
+        @DisplayName("Заявка не найдена — error (cancelBooking использует 'error')")
         void notFound_error() {
             when(bookingRepository.findById(99L)).thenReturn(Optional.empty());
+
             bookingController.cancelBooking(99L, requesterPrincipal, ra);
+
             verify(ra).addFlashAttribute(eq("error"), any());
         }
 
         @Test
-        @DisplayName("Отмена ACCEPTED — книга уже не BOOKED — статус книги не меняется")
+        @DisplayName("Отмена ACCEPTED — книга уже FREE — save не вызывается")
         void cancelAccepted_bookAlreadyFree_noChange() {
             Booking booking = acceptedBooking();
-            book.setStatus(Book.BookStatus.FREE); // уже свободна
+            book.setStatus(Book.BookStatus.FREE);
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
 
             bookingController.cancelBooking(1L, requesterPrincipal, ra);
 
-            // save не должен вызываться, если статус уже FREE
             verify(bookRepository, never()).save(any());
         }
     }
@@ -464,22 +483,20 @@ class BookingControllerTest {
         void bookNotFound_404() {
             when(bookRepository.findById(99L)).thenReturn(Optional.empty());
 
-            ResponseEntity<Map<String, Object>> resp =
-                    bookingController.getActiveBooking(99L);
+            ResponseEntity<Map<String, Object>> resp = bookingController.getActiveBooking(99L);
 
             assertThat(resp.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.NOT_FOUND);
         }
 
         @Test
-        @DisplayName("Активная бронь найдена — 200 с данными")
+        @DisplayName("Активная бронь найдена — 200 с данными requester")
         void activeBookingFound_200WithData() {
             Booking booking = acceptedBooking();
             when(bookRepository.findById(10L)).thenReturn(Optional.of(book));
             when(bookingRepository.findActiveBookingForBook(book, BookingStatus.ACCEPTED))
                     .thenReturn(Optional.of(booking));
 
-            ResponseEntity<Map<String, Object>> resp =
-                    bookingController.getActiveBooking(10L);
+            ResponseEntity<Map<String, Object>> resp = bookingController.getActiveBooking(10L);
 
             assertThat(resp.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.OK);
             assertThat(resp.getBody()).isNotNull();
@@ -494,8 +511,7 @@ class BookingControllerTest {
             when(bookingRepository.findActiveBookingForBook(book, BookingStatus.ACCEPTED))
                     .thenReturn(Optional.empty());
 
-            ResponseEntity<Map<String, Object>> resp =
-                    bookingController.getActiveBooking(10L);
+            ResponseEntity<Map<String, Object>> resp = bookingController.getActiveBooking(10L);
 
             assertThat(resp.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.OK);
             assertThat(resp.getBody()).isNull();
@@ -510,8 +526,7 @@ class BookingControllerTest {
             when(bookingRepository.findActiveBookingForBook(book, BookingStatus.ACCEPTED))
                     .thenReturn(Optional.of(booking));
 
-            ResponseEntity<Map<String, Object>> resp =
-                    bookingController.getActiveBooking(10L);
+            ResponseEntity<Map<String, Object>> resp = bookingController.getActiveBooking(10L);
 
             assertThat(resp.getBody()).containsKey("bookedUntil");
             assertThat(resp.getBody().get("bookedUntil")).isNotNull();
@@ -526,8 +541,7 @@ class BookingControllerTest {
             when(bookingRepository.findActiveBookingForBook(book, BookingStatus.ACCEPTED))
                     .thenReturn(Optional.of(booking));
 
-            ResponseEntity<Map<String, Object>> resp =
-                    bookingController.getActiveBooking(10L);
+            ResponseEntity<Map<String, Object>> resp = bookingController.getActiveBooking(10L);
 
             assertThat(resp.getBody()).containsEntry("bookedUntil", null);
         }

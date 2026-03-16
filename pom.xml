@@ -20,6 +20,7 @@
     <properties>
         <java.version>17</java.version>
         <jacoco.version>0.8.11</jacoco.version>
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -138,9 +139,36 @@
             </plugin>
 
             <!--
-                JaCoCo — отчёт о покрытии кода тестами.
-                После mvn test отчёт: target/site/jacoco/index.html
+                Maven Surefire Plugin — запуск тестов.
+                Исправляет "Corrupted channel by directly writing to native stream":
+                  - useFile=false       — не буферизует вывод тестов через канал Maven
+                  - forkCount=1         — один форкнутый процесс для всех тестов
+                  - reuseForks=true     — переиспользует JVM между тест-классами
+                  - argLine с JaCoCo    — интегрируется с jacoco prepare-agent
+                  - Lombok и Spring ANSI отключены, чтобы не писать напрямую в stdout
             -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <useFile>false</useFile>
+                    <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                    <argLine>
+                        ${argLine}
+                        -Dsurefire.useSystemClassLoader=false
+                        -Dlombok.addLombokGeneratedAnnotation=true
+                    </argLine>
+                    <systemPropertyVariables>
+                        <spring.output.ansi.enabled>NEVER</spring.output.ansi.enabled>
+                        <spring.jpa.show-sql>false</spring.jpa.show-sql>
+                        <logging.level.org.hibernate.SQL>OFF</logging.level.org.hibernate.SQL>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>

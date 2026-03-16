@@ -326,7 +326,7 @@ class StatsControllerTest {
 
             Map<String, Object> row = statsController.getReviews("alice").getBody().get(0);
 
-            assertThat(row.get("bookTitle")).isEqualTo("---");
+            assertThat(row.get("bookTitle")).isEqualTo("—");
             assertThat(row.get("bookImage")).isEqualTo("");
             assertThat(row.get("bookId")).isNull();
         }
@@ -364,7 +364,7 @@ class StatsControllerTest {
 
             ResponseEntity<Map<String, Object>> resp = statsController.getTimeline("alice");
 
-            assertThat(resp.getBody().get("registeredAt")).isEqualTo("---");
+            assertThat(resp.getBody().get("registeredAt")).isEqualTo("—");
         }
 
         @Test
