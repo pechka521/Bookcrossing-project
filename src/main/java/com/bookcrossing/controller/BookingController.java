@@ -21,18 +21,21 @@ import java.util.Map;
 @RequestMapping("/bookings")
 public class BookingController {
 
+    /** Максимальный срок бронирования — 90 дней (≈ 3 месяца) (#1) */
+    private static final int MAX_BOOKING_DAYS = 90;
+
     private final BookingRepository bookingRepository;
-    private final BookRepository    bookRepository;
-    private final UserService       userService;
+    private final BookRepository bookRepository;
+    private final UserService userService;
     private final NotificationService notificationService;
 
     public BookingController(BookingRepository bookingRepository,
                              BookRepository bookRepository,
                              UserService userService,
                              NotificationService notificationService) {
-        this.bookingRepository   = bookingRepository;
-        this.bookRepository      = bookRepository;
-        this.userService         = userService;
+        this.bookingRepository = bookingRepository;
+        this.bookRepository = bookRepository;
+        this.userService = userService;
         this.notificationService = notificationService;
     }
 
@@ -44,6 +47,7 @@ public class BookingController {
                                  @RequestParam(required = false) Integer days,
                                  Principal principal,
                                  RedirectAttributes ra) {
+
         User requester = userService.findByUsername(principal.getName());
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new IllegalArgumentException("Книга не найдена"));
@@ -59,6 +63,13 @@ public class BookingController {
         if (bookingRepository.existsByBookAndRequesterAndStatus(
                 book, requester, BookingStatus.PENDING)) {
             ra.addFlashAttribute("error", "Вы уже отправили заявку на эту книгу.");
+            return "redirect:/";
+        }
+
+        // (#1) Ограничиваем срок максимумом 90 дней
+        if (days != null && days > MAX_BOOKING_DAYS) {
+            ra.addFlashAttribute("error",
+                    "Максимальный срок бронирования — " + MAX_BOOKING_DAYS + " дней (3 месяца).");
             return "redirect:/";
         }
 
@@ -95,7 +106,6 @@ public class BookingController {
             ra.addFlashAttribute("errorMessage", "Заявка не найдена или уже обработана.");
             return "redirect:/my-books";
         }
-
         booking.setStatus(BookingStatus.ACCEPTED);
         booking.setOwnerResponse(response != null ? response.trim() : null);
         booking.setRespondedAt(LocalDateTime.now());
@@ -130,7 +140,6 @@ public class BookingController {
             ra.addFlashAttribute("errorMessage", "Заявка не найдена или уже обработана.");
             return "redirect:/my-books";
         }
-
         booking.setStatus(BookingStatus.REJECTED);
         booking.setOwnerResponse(response != null ? response.trim() : null);
         booking.setRespondedAt(LocalDateTime.now());
@@ -162,7 +171,6 @@ public class BookingController {
             ra.addFlashAttribute("errorMessage", "Бронь не активна.");
             return "redirect:/my-books";
         }
-
         booking.setStatus(BookingStatus.COMPLETED);
         bookingRepository.save(booking);
 
@@ -181,10 +189,7 @@ public class BookingController {
         return "redirect:/my-books";
     }
 
-    /**
-     * Владелец отменяет уже одобренную бронь → книга FREE.
-     * Например: читатель не пришёл, планы изменились.
-     */
+    /** Владелец отменяет одобренную бронь → книга FREE */
     @Transactional
     @PostMapping("/{id}/release")
     public String releaseBooking(@PathVariable Long id,
@@ -198,7 +203,6 @@ public class BookingController {
             ra.addFlashAttribute("errorMessage", "Бронь не активна.");
             return "redirect:/my-books";
         }
-
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
 
@@ -224,12 +228,10 @@ public class BookingController {
     public String cancelBooking(@PathVariable Long id,
                                 Principal principal, RedirectAttributes ra) {
         Booking booking = bookingRepository.findById(id).orElse(null);
-        if (booking == null ||
-                !booking.getRequester().getUsername().equals(principal.getName())) {
+        if (booking == null || !booking.getRequester().getUsername().equals(principal.getName())) {
             ra.addFlashAttribute("error", "Заявка не найдена.");
             return "redirect:/";
         }
-
         boolean wasAccepted = booking.getStatus() == BookingStatus.ACCEPTED;
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
@@ -256,7 +258,7 @@ public class BookingController {
         return bookingRepository.findActiveBookingForBook(book, BookingStatus.ACCEPTED)
                 .map(b -> {
                     Map<String, Object> m = new HashMap<>();
-                    m.put("requester", b.getRequester().getUsername());
+                    m.put("requester",   b.getRequester().getUsername());
                     m.put("requestedAt", b.getRequestedAt().toLocalDate().toString());
                     m.put("bookedUntil", b.getBookedUntil() != null
                             ? b.getBookedUntil().toLocalDate().toString() : null);

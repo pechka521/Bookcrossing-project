@@ -42,14 +42,6 @@ public class SecurityConfig {
         return provider;
     }
 
-    /**
-     * Кастомный точка входа для неаутентифицированных запросов.
-     *
-     * Стандартный Spring Security при обращении к защищённому ресурсу
-     * перенаправляет сразу на страницу логина (/login).
-     * Здесь мы меняем это поведение: первый раз пользователь попадает
-     * на приветственный экран (/welcome), откуда сам нажимает кнопку входа.
-     */
     @Bean
     public AuthenticationEntryPoint welcomeEntryPoint() {
         return new AuthenticationEntryPoint() {
@@ -57,7 +49,6 @@ public class SecurityConfig {
             public void commence(HttpServletRequest request,
                                  HttpServletResponse response,
                                  AuthenticationException authException) throws IOException {
-                // Запросы к статике и API пропускаем без редиректа
                 String uri = request.getRequestURI();
                 if (uri.startsWith("/css/") || uri.startsWith("/js/")
                         || uri.startsWith("/images/") || uri.startsWith("/sounds/")
@@ -65,7 +56,6 @@ public class SecurityConfig {
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
-                // Все остальные защищённые запросы → приветственный экран
                 response.sendRedirect(request.getContextPath() + "/welcome");
             }
         };
@@ -77,15 +67,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/ws/**"))
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные маршруты
                         .requestMatchers(
-                                "/welcome",
-                                "/register", "/login",
+                                "/welcome", "/register", "/login",
                                 "/css/**", "/js/**", "/images/**", "/sounds/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Просмотр обращений — только ADMIN
+                        .requestMatchers("/support/admin", "/support/*/reply").hasRole("ADMIN")
                         .requestMatchers("/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
-                        .requestMatchers("/complaints/**").authenticated()
+                        .requestMatchers("/complaints/**", "/support/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -95,11 +85,11 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/welcome")   // после выхода — тоже на welcome
+                        .logoutSuccessUrl("/welcome")
                         .permitAll()
                 )
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(welcomeEntryPoint())  // ← ключевое изменение
+                        .authenticationEntryPoint(welcomeEntryPoint())
                         .accessDeniedPage("/access-denied")
                 );
 

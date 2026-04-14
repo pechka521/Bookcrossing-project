@@ -4,6 +4,42 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 
+<style>
+    /* ── Эмодзи-пикер (#6) ── */
+    .emoji-btn {
+        width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #e5e7eb;
+        background: #fff; font-size: 1.1rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; transition: background .15s;
+    }
+    .emoji-btn:hover { background: #f0f3ff; border-color: #3b5bdb; }
+
+    .emoji-picker {
+        position: absolute; bottom: 60px; left: 0; right: 0;
+        background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px;
+        padding: 10px 12px; display: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 100;
+        flex-wrap: wrap; gap: 4px;
+    }
+    .emoji-picker.open { display: flex; }
+    .emoji-item {
+        font-size: 1.4rem; cursor: pointer; padding: 4px;
+        border-radius: 8px; transition: background .15s; line-height: 1;
+        border: none; background: transparent;
+    }
+    .emoji-item:hover { background: #f0f3ff; }
+
+    /* ── Ссылка на профиль (#4) ── */
+    .partner-profile-link {
+        font-size: .75rem; color: #3b5bdb; text-decoration: none;
+        display: flex; align-items: center; gap: 4px; margin-top: 1px;
+        transition: opacity .2s;
+    }
+    .partner-profile-link:hover { opacity: .75; }
+
+    .form-wrap-rel { position: relative; }
+</style>
+
 <div class="container mt-4" style="height:85vh;">
     <div class="row h-100 shadow-sm rounded-3 overflow-hidden bg-white border">
 
@@ -15,51 +51,95 @@
                    th:href="@{/messages(partnerId=${conv.partner.id})}"
                    class="list-group-item list-group-item-action d-flex align-items-center py-3 border-0 border-bottom"
                    th:classappend="${activePartner != null && activePartner.id == conv.partner.id} ? 'bg-light' : ''">
-                    <img th:src="${conv.partner.avatarDisplay}" class="rounded-circle me-3 flex-shrink-0" width="44" height="44" style="object-fit:cover;">
+                    <img th:src="${conv.partner.avatarDisplay}" class="rounded-circle me-3 flex-shrink-0"
+                         width="44" height="44" style="object-fit:cover;"
+                         th:alt="${conv.partner.username}">
                     <div class="flex-grow-1 min-width-0 overflow-hidden">
                         <div class="d-flex justify-content-between align-items-center">
-                            <strong class="small text-truncate" th:text="${conv.partner.fullName ?: conv.partner.username}">User</strong>
-                            <small class="text-muted ms-2 flex-shrink-0" th:text="${#temporals.format(conv.lastMessageTime, 'HH:mm')}">Time</small>
+                            <strong class="small text-truncate"
+                                    th:text="${conv.partner.fullName ?: conv.partner.username}">User</strong>
+                            <small class="text-muted ms-2 flex-shrink-0"
+                                   th:text="${#temporals.format(conv.lastMessageTime, 'HH:mm')}">Time</small>
                         </div>
                         <p class="mb-0 text-truncate text-muted small" th:text="${conv.lastMessage}">...</p>
                     </div>
-                    <span th:if="${conv.unreadCount > 0}" class="badge bg-danger rounded-pill ms-2" th:text="${conv.unreadCount}">1</span>
+                    <span th:if="${conv.unreadCount > 0}" class="badge bg-danger rounded-pill ms-2"
+                          th:text="${conv.unreadCount}">1</span>
                 </a>
             </div>
         </div>
 
         <!-- Чат -->
         <div class="col-md-8 px-0 d-flex flex-column h-100" style="background:#f8f9fa;">
-            <div th:if="${activePartner}" class="p-3 border-bottom bg-white d-flex align-items-center">
-                <img th:src="${activePartner.avatarDisplay}" class="rounded-circle me-3" width="38" height="38" style="object-fit:cover;">
-                <h6 class="mb-0 fw-bold" th:text="${activePartner.fullName ?: activePartner.username}">User</h6>
+
+            <!-- Заголовок активного чата с ссылкой на профиль (#4) -->
+            <div th:if="${activePartner}" class="p-3 border-bottom bg-white d-flex align-items-center gap-3">
+                <img th:src="${activePartner.avatarDisplay}" class="rounded-circle"
+                     width="38" height="38" style="object-fit:cover;flex-shrink:0;"
+                     th:alt="${activePartner.username}">
+                <div>
+                    <h6 class="mb-0 fw-bold" th:text="${activePartner.fullName ?: activePartner.username}">User</h6>
+                    <!-- Ссылка на профиль (#4) -->
+                    <a th:href="@{/users/{u}(u=${activePartner.username})}"
+                       class="partner-profile-link" target="_blank">
+                        <i class="fas fa-external-link-alt" style="font-size:.65rem;"></i>
+                        Открыть профиль
+                    </a>
+                </div>
             </div>
             <div th:unless="${activePartner}" class="p-3 border-bottom bg-white">
                 <p class="mb-0 text-muted small">Выберите диалог слева</p>
             </div>
 
-            <div id="chatHistory" class="flex-grow-1 p-3 overflow-auto d-flex flex-column" th:if="${activePartner}">
+            <!-- История сообщений -->
+            <div id="chatHistory" class="flex-grow-1 p-3 overflow-auto d-flex flex-column"
+                 th:if="${activePartner}">
                 <div th:each="msg : ${history}"
                      class="d-flex mb-2"
                      th:classappend="${msg.sender.id == currentUser.id} ? 'justify-content-end' : 'justify-content-start'">
                     <div class="px-3 py-2 rounded-3 shadow-sm" style="max-width:72%;word-break:break-word;"
                          th:classappend="${msg.sender.id == currentUser.id} ? 'bg-primary text-white' : 'bg-white'">
                         <p class="mb-1 small" th:text="${msg.content}">Text</p>
-                        <small class="opacity-75" style="font-size:0.68rem;" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}">10:00</small>
+                        <small class="opacity-75" style="font-size:0.68rem;"
+                               th:text="${#temporals.format(msg.timestamp, 'HH:mm')}">10:00</small>
                     </div>
                 </div>
             </div>
 
+            <!-- Поле ввода с эмодзи (#6) -->
             <div class="p-3 bg-white border-top" th:if="${activePartner}">
-                <form id="messageForm" class="d-flex gap-2">
-                    <input type="hidden" id="recipientId" th:value="${activePartner.id}">
-                    <input type="text" id="messageInput" class="form-control rounded-pill"
-                           placeholder="Написать сообщение..." autocomplete="off">
-                    <button type="submit" class="btn btn-primary rounded-circle flex-shrink-0"
-                            style="width:42px;height:42px;padding:0;">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
+                <div class="form-wrap-rel">
+                    <!-- Эмодзи-пикер -->
+                    <div class="emoji-picker" id="emojiPicker">
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😀')">😀</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😁')">😁</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😂')">😂</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😃')">😃</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😄')">😄</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😅')">😅</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😆')">😆</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😇')">😇</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('🥰')">🥰</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😎')">😎</button>
+                        <button type="button" class="emoji-item" onclick="insertEmoji('😳')">😳</button>
+                    </div>
+
+                    <form id="messageForm" class="d-flex gap-2">
+                        <input type="hidden" id="recipientId" th:value="${activePartner.id}">
+
+                        <!-- Кнопка эмодзи -->
+                        <button type="button" class="emoji-btn" id="emojiToggle"
+                                title="Эмодзи" onclick="toggleEmojiPicker()">😊</button>
+
+                        <input type="text" id="messageInput" class="form-control rounded-pill"
+                               placeholder="Написать сообщение..." autocomplete="off">
+
+                        <button type="submit" class="btn btn-primary rounded-circle flex-shrink-0"
+                                style="width:42px;height:42px;padding:0;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -69,7 +149,31 @@
     var recipientId   = document.getElementById('recipientId').value;
     var currentUserId = /*[[${currentUser.username}]]*/ '';
 
-    // Подписка на входящие — через globalStompClient из layout.html
+    // ── Эмодзи (#6) ──────────────────────────────────────────
+    function toggleEmojiPicker() {
+        var p = document.getElementById('emojiPicker');
+        p.classList.toggle('open');
+    }
+
+    function insertEmoji(emoji) {
+        var input = document.getElementById('messageInput');
+        var pos   = input.selectionStart || input.value.length;
+        input.value = input.value.slice(0, pos) + emoji + input.value.slice(pos);
+        input.focus();
+        input.selectionStart = input.selectionEnd = pos + emoji.length;
+        document.getElementById('emojiPicker').classList.remove('open');
+    }
+
+    // Закрывать пикер при клике за его пределами
+    document.addEventListener('click', function(e) {
+        var picker = document.getElementById('emojiPicker');
+        var btn    = document.getElementById('emojiToggle');
+        if (!picker.contains(e.target) && e.target !== btn) {
+            picker.classList.remove('open');
+        }
+    });
+
+    // ── WebSocket ─────────────────────────────────────────────
     function setupChatSubscription(client) {
         client.subscribe('/user/queue/messages', function (out) {
             var msg = JSON.parse(out.body);
@@ -88,7 +192,7 @@
         };
     }
 
-     function sendMessage(event) {
+    function sendMessage(event) {
         event.preventDefault();
         var input   = document.getElementById('messageInput');
         var content = input.value.trim();
@@ -100,7 +204,7 @@
 
     function renderMessage(message) {
         var isMe       = (message.sender.username === currentUserId);
-        var alignClass = isMe ? 'justify-content-end' : 'justify-content-start';
+        var alignClass = isMe ? 'justify-content-end'  : 'justify-content-start';
         var colorClass = isMe ? 'bg-primary text-white' : 'bg-white';
 
         var timeStr = '';

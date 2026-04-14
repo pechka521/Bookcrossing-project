@@ -23,10 +23,10 @@
   .stat-card:hover, .stat-card.active-stat { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.09); }
   .stat-card.books-added.active-stat { border-color:#3b5bdb40; }
   .stat-card.books-given.active-stat { border-color:#0d948840; }
-  .stat-card.reviews.active-stat { border-color:#f59e0b40; }
-  .stat-card.days.active-stat { border-color:#ec489940; }
+  .stat-card.reviews.active-stat     { border-color:#f59e0b40; }
+  .stat-card.days.active-stat        { border-color:#ec489940; }
   .stat-icon { font-size:1.6rem; display:block; margin-bottom:8px; }
-  .stat-num { font-size:2rem; font-weight:800; color:#1a1a2e; line-height:1; margin-bottom:4px; }
+  .stat-num  { font-size:2rem; font-weight:800; color:#1a1a2e; line-height:1; margin-bottom:4px; }
   .stat-label { font-size:.78rem; color:#94a3b8; font-weight:500; }
   .click-hint { font-size:.62rem; color:#cbd5e1; margin-top:4px; font-style:italic; }
 
@@ -52,7 +52,7 @@
   .ach-card.locked:hover { opacity:.85; transform:translateY(-1px); }
   .ach-card.featured-card { box-shadow:0 0 0 2px #f59e0b, 0 4px 16px rgba(245,158,11,.3) !important; }
   .featured-star { position:absolute; top:-5px; right:-5px; background:#f59e0b; color:#fff; border-radius:50%; width:18px; height:18px; font-size:.65rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.2); }
-  .ach-icon { font-size:2rem; display:block; margin-bottom:5px; }
+  .ach-icon  { font-size:2rem; display:block; margin-bottom:5px; }
   .ach-title { font-size:.68rem; font-weight:600; color:#374151; line-height:1.2; }
   .feat-toggle-btn { display:block; width:100%; margin-top:6px; padding:3px 0; border-radius:6px; border:1px solid #e2e8f0; background:transparent; font-size:.6rem; cursor:pointer; transition:all .15s; color:#94a3b8; }
   .feat-toggle-btn.active { background:#f59e0b; border-color:#f59e0b; color:#fff; font-weight:600; }
@@ -86,7 +86,7 @@
   }
   #achTooltip.visible { opacity:1; }
   #achTooltip strong { font-size:.88rem; display:block; margin-bottom:4px; }
-  #achTooltip .tip-desc { color:#cbd5e1; font-size:.78rem; }
+  #achTooltip .tip-desc   { color:#cbd5e1; font-size:.78rem; }
   #achTooltip .tip-earned { color:#4ade80; font-size:.75rem; margin-top:6px; display:block; }
   #achTooltip .tip-locked { color:#94a3b8; font-size:.75rem; margin-top:6px; display:block; }
 </style>
@@ -106,14 +106,15 @@
   <div class="profile-card d-flex flex-wrap gap-4 align-items-start">
     <img th:src="${profileUser.avatarDisplay}" class="profile-avatar" alt="Аватар">
     <div class="flex-grow-1">
-      <div class="profile-name" th:text="${profileUser.fullName != null ? profileUser.fullName : '@' + profileUser.username}"></div>
+      <div class="profile-name"
+           th:text="${profileUser.fullName != null ? profileUser.fullName : '@' + profileUser.username}"></div>
       <div class="profile-username" th:text="'@' + ${profileUser.username}"></div>
       <div class="d-flex flex-wrap gap-3 mt-2">
         <span th:if="${profileUser.city != null}" class="text-muted small">📍 <span th:text="${profileUser.city}"></span></span>
-        <span th:if="${profileUser.age != null}" class="text-muted small">🎂 <span th:text="${profileUser.age}"></span> лет</span>
+        <span th:if="${profileUser.age != null}"  class="text-muted small">🎂 <span th:text="${profileUser.age}"></span> лет</span>
         <span th:if="${profileUser.favoriteGenres != null}" class="text-muted small">📚 <span th:text="${profileUser.favoriteGenres}"></span></span>
       </div>
-      <div class="rank-badge mt-2" id="rankBadge"><span id="rankText">⏳</span></div>
+      <div class="rank-badge mt-2"><span id="rankText">⏳</span></div>
     </div>
     <div th:if="${isOwnProfile}">
       <a href="/profile/edit" class="btn btn-outline-primary rounded-pill btn-sm px-4">✏️ Редактировать</a>
@@ -126,69 +127,57 @@
     <div class="featured-strip" id="featuredStrip"></div>
   </div>
 
+  <!-- ── О себе (#5) — ПЕРЕНЕСЕНО ВЫШЕ Статистики ── -->
+  <div th:if="${profileUser.aboutMe != null}" class="mt-4 profile-card">
+    <div class="section-title">💬 О себе</div>
+    <p class="text-muted mb-0" style="white-space:pre-wrap;" th:text="${profileUser.aboutMe}"></p>
+  </div>
+
   <!-- Статистика -->
   <div class="mt-4">
     <div class="section-title">📊 Статистика</div>
     <div class="stats-grid">
       <div class="stat-card books-added" onclick="toggleDetail('booksAdded')" id="cardBooksAdded">
         <span class="stat-icon">📚</span>
-        <div class="stat-num" id="statBooksAdded">—</div>
+        <div class="stat-num" id="statBooksAdded">---</div>
         <div class="stat-label">Добавлено книг</div>
         <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card books-given" onclick="toggleDetail('booksGiven')" id="cardBooksGiven">
         <span class="stat-icon">🤝</span>
-        <div class="stat-num" id="statBooksGiven">—</div>
+        <div class="stat-num" id="statBooksGiven">---</div>
         <div class="stat-label">Передано книг</div>
         <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card reviews" onclick="toggleDetail('reviews')" id="cardReviews">
         <span class="stat-icon">⭐</span>
-        <div class="stat-num" id="statReviews">—</div>
+        <div class="stat-num" id="statReviews">---</div>
         <div class="stat-label">Отзывов</div>
         <div class="click-hint">нажмите ↓</div>
       </div>
       <div class="stat-card days" onclick="toggleDetail('days')" id="cardDays">
         <span class="stat-icon">🗓️</span>
-        <div class="stat-num" id="statDays">—</div>
+        <div class="stat-num" id="statDays">---</div>
         <div class="stat-label">Дней в системе</div>
         <div class="click-hint">нажмите ↓</div>
       </div>
     </div>
-    <div class="detail-panel" id="detailBooksAdded">
-      <h5>📚 Добавленные книги</h5>
-      <div id="listBooksAdded"><div class="text-muted small py-2">Загрузка...</div></div>
-    </div>
-    <div class="detail-panel" id="detailBooksGiven">
-      <h5>🤝 Переданные книги</h5>
-      <div id="listBooksGiven"><div class="text-muted small py-2">Загрузка...</div></div>
-    </div>
-    <div class="detail-panel" id="detailReviews">
-      <h5>⭐ Мои отзывы</h5>
-      <div id="listReviews"><div class="text-muted small py-2">Загрузка...</div></div>
-    </div>
-    <div class="detail-panel" id="detailDays">
-      <h5>🗓️ Хронология</h5>
-      <div id="listDays"><div class="text-muted small py-2">Загрузка...</div></div>
-    </div>
+    <div class="detail-panel" id="detailBooksAdded"><h5>📚 Добавленные книги</h5><div id="listBooksAdded"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailBooksGiven"><h5>🤝 Переданные книги</h5><div id="listBooksGiven"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailReviews"><h5>⭐ Мои отзывы</h5><div id="listReviews"><div class="text-muted small py-2">Загрузка...</div></div></div>
+    <div class="detail-panel" id="detailDays"><h5>🗓️ Хронология</h5><div id="listDays"><div class="text-muted small py-2">Загрузка...</div></div></div>
   </div>
 
   <!-- Достижения -->
   <div class="mt-4">
     <div class="section-title">
       🏅 Достижения
-      <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size:.7rem;" id="achCount">…</span>
-      <span th:if="${isOwnProfile}" class="text-muted small fw-normal">— нажмите «⭐ Витрина» на заработанных</span>
+      <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size:.7rem;" id="achCount">...</span>
+      <span th:if="${isOwnProfile}" class="text-muted small fw-normal">--- нажмите «⭐ Витрина» на заработанных</span>
     </div>
     <div class="achievements-grid" id="achievementsGrid">
       <div class="text-muted small">Загрузка...</div>
     </div>
-  </div>
-
-  <!-- О себе -->
-  <div th:if="${profileUser.aboutMe != null}" class="mt-4 profile-card">
-    <div class="section-title">💬 О себе</div>
-    <p class="text-muted mb-0" style="white-space:pre-wrap;" th:text="${profileUser.aboutMe}"></p>
   </div>
 
 </div>
@@ -197,11 +186,10 @@
   /*<![CDATA[*/
   var profileUsername = /*[[${profileUser.username}]]*/ '';
   var isOwnProfile    = /*[[${isOwnProfile}]]*/ false;
-  var csrfToken       = document.querySelector('meta[name="_csrf"]');
-  var csrfVal         = csrfToken ? csrfToken.getAttribute('content') : '';
+  var csrfToken = document.querySelector('meta[name="_csrf"]');
+  var csrfVal   = csrfToken ? csrfToken.getAttribute('content') : '';
   var loaded = {};
 
-  // ── Анимированный счётчик ──────────────────────────────────────────────
   function animateNum(el, target) {
     var s = 0, dur = 600;
     var step = function(ts) {
@@ -214,7 +202,6 @@
     requestAnimationFrame(step);
   }
 
-  // ── Загрузка статистики ────────────────────────────────────────────────
   async function loadStats() {
     try {
       var r = await fetch('/api/users/' + profileUsername + '/stats');
@@ -222,19 +209,18 @@
       var s = await r.json();
       animateNum(document.getElementById('statBooksAdded'), s.booksAdded);
       animateNum(document.getElementById('statBooksGiven'), s.booksGiven);
-      animateNum(document.getElementById('statReviews'), s.reviewsWritten);
-      animateNum(document.getElementById('statDays'), s.daysInSystem);
+      animateNum(document.getElementById('statReviews'),    s.reviewsWritten);
+      animateNum(document.getElementById('statDays'),       s.daysInSystem);
       if (s.rank) document.getElementById('rankText').textContent = s.rank;
     } catch(e) {}
   }
 
-  // ── Детализация ────────────────────────────────────────────────────────
   function toggleDetail(type) {
     var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
     var types = ['booksAdded', 'booksGiven', 'reviews', 'days'];
     types.forEach(function(t) {
       var panel = document.getElementById('detail' + cap(t));
-      var card  = document.getElementById('card'   + cap(t));
+      var card  = document.getElementById('card'  + cap(t));
       if (t === type) {
         if (panel.classList.contains('open')) {
           panel.classList.remove('open');
@@ -258,12 +244,7 @@
       reviews:    '/api/users/' + profileUsername + '/reviews',
       days:       '/api/users/' + profileUsername + '/timeline'
     };
-    var renders = {
-      booksAdded: renderBooksAdded,
-      booksGiven: renderBooksGiven,
-      reviews:    renderReviews,
-      days:       renderTimeline
-    };
+    var renders = { booksAdded: renderBooksAdded, booksGiven: renderBooksGiven, reviews: renderReviews, days: renderTimeline };
     try {
       var r = await fetch(urls[type]);
       if (!r.ok) return;
@@ -297,9 +278,7 @@
               '<div class="detail-book-info">' +
               '<div class="detail-book-title">' + b.title + '</div>' +
               '<div class="detail-book-meta">' + b.author + '</div>' +
-              (b.bookedBy ? '<div class="detail-book-meta">👤 ' + b.bookedBy +
-                      (b.bookedSince ? ' · с ' + b.bookedSince : '') +
-                      (b.bookedUntil ? ' · до ' + b.bookedUntil : '') + '</div>' : '') +
+              (b.bookedBy ? '<div class="detail-book-meta">👤 ' + b.bookedBy + (b.bookedSince ? ' · с ' + b.bookedSince : '') + (b.bookedUntil ? ' · до ' + b.bookedUntil : '') + '</div>' : '') +
               '</div></div>';
     }).join('');
   }
@@ -334,55 +313,36 @@
             '</div>';
   }
 
-  // ── Глобальный тултип ─────────────────────────────────────────────────
   var tooltip = document.getElementById('achTooltip');
-
   function showTooltip(card, a) {
     var info = a.earned
             ? '<span class="tip-earned">✅ Получено' + (a.earnedAt ? ' ' + new Date(a.earnedAt).toLocaleDateString('ru-RU') : '') + '</span>'
             : '<span class="tip-locked">🔒 ' + (a.condition || 'Не получено') + '</span>';
-
-    tooltip.innerHTML =
-            '<strong>' + a.icon + ' ' + a.title + '</strong>' +
-            '<span class="tip-desc">' + a.description + '</span>' +
-            info;
-
+    tooltip.innerHTML = '<strong>' + a.icon + ' ' + a.title + '</strong>' +
+            '<span class="tip-desc">' + a.description + '</span>' + info;
     tooltip.classList.remove('visible', 'arrow-below');
-
     var rect = card.getBoundingClientRect();
     var tw = 230, th = 120;
     var left = rect.left + rect.width / 2 - tw / 2;
     var top  = rect.bottom + 10;
     var arrowBelow = false;
-
-    if (top + th > window.innerHeight - 8) {
-      top = rect.top - th - 10;
-      arrowBelow = true;
-    }
+    if (top + th > window.innerHeight - 8) { top = rect.top - th - 10; arrowBelow = true; }
     if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
     if (left < 8) left = 8;
-
-    tooltip.style.left = left + 'px';
-    tooltip.style.top  = top  + 'px';
+    tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
     if (arrowBelow) tooltip.classList.add('arrow-below');
     tooltip.classList.add('visible');
   }
-
   function hideTooltip() { tooltip.classList.remove('visible'); }
 
-  // ── Витрина ───────────────────────────────────────────────────────────
   var featuredCount = 0;
-
   async function toggleFeatured(code, btn) {
     var r = await fetch('/api/achievements/' + code + '/toggle-featured', {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': csrfVal, 'Content-Type': 'application/json' }
     });
     var data = await r.json();
-    if (!r.ok) {
-      if (data.error) showToastMsg(data.error, 'warning');
-      return;
-    }
+    if (!r.ok) { if (data.error) showToastMsg(data.error, 'warning'); return; }
     featuredCount = data.featuredCount;
     loaded['achievements'] = false;
     await loadAchievements();
@@ -399,8 +359,8 @@
   }
 
   function renderFeaturedStrip(list) {
-    var wrap     = document.getElementById('featuredStripWrap');
-    var strip    = document.getElementById('featuredStrip');
+    var wrap    = document.getElementById('featuredStripWrap');
+    var strip   = document.getElementById('featuredStrip');
     var featured = list.filter(function(a) { return a.featured && a.earned; });
     if (!featured.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'block';
@@ -409,42 +369,30 @@
     }).join('');
   }
 
-  // ── Загрузка достижений ───────────────────────────────────────────────
   async function loadAchievements() {
     try {
-      var r = await fetch('/api/achievements');
+      var r    = await fetch('/api/achievements');
       if (!r.ok) return;
       var list = await r.json();
       var grid = document.getElementById('achievementsGrid');
       grid.innerHTML = '';
-
       var earned = list.filter(function(a) { return a.earned; }).length;
       featuredCount = list.filter(function(a) { return a.featured; }).length;
       document.getElementById('achCount').textContent = earned + ' / ' + list.length;
-
       renderFeaturedStrip(list);
-
       list.forEach(function(a) {
-        var card = document.createElement('div');
+        var card     = document.createElement('div');
         card.className = 'ach-card ' + (a.earned ? 'earned' : 'locked') + (a.featured ? ' featured-card' : '');
-
         var featBtn = '';
         if (isOwnProfile && a.earned) {
           var btnClass = a.featured ? 'feat-toggle-btn active' : 'feat-toggle-btn';
           var btnLabel = a.featured ? '★ На витрине' : '☆ Витрина';
           featBtn = '<button class="' + btnClass + '" onclick="event.stopPropagation(); toggleFeatured(\'' + a.code + '\', this)">' + btnLabel + '</button>';
         }
-
         var featStar = a.featured ? '<div class="featured-star">★</div>' : '';
-
-        card.innerHTML = featStar +
-                '<span class="ach-icon">' + a.icon + '</span>' +
-                '<div class="ach-title">' + a.title + '</div>' +
-                featBtn;
-
+        card.innerHTML = featStar + '<span class="ach-icon">' + a.icon + '</span>' + '<div class="ach-title">' + a.title + '</div>' + featBtn;
         card.addEventListener('mouseenter', function() { showTooltip(card, a); });
         card.addEventListener('mouseleave', function() { hideTooltip(); });
-
         grid.appendChild(card);
       });
     } catch(e) { console.error(e); }

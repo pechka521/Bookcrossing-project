@@ -19,14 +19,20 @@
             height: 56px;
             position: fixed; top: 0; left: 0; right: 0;
             z-index: 900;
-            display: flex; align-items: center; justify-content: flex-end;
+            display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px;
         }
-        .page-section-title {
+
+        /* ── Логотип "BookCrossing" (#3) ── */
+        .navbar-brand-title {
             position: absolute; left: 50%; transform: translateX(-50%);
-            font-size: 1.1rem; font-weight: 700; color: #1a1a2e;
-            letter-spacing: 0.01em; pointer-events: none; white-space: nowrap;
+            font-size: 1.05rem; font-weight: 800; color: #1a1a2e;
+            letter-spacing: -0.01em; pointer-events: none; white-space: nowrap;
+            display: flex; align-items: center; gap: 6px;
         }
+        .navbar-brand-title .brand-book { color: #3b5bdb; }
+        .navbar-brand-title .brand-cross { color: #7048e8; }
+
         .bell-btn {
             position: relative; width: 38px; height: 38px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
@@ -44,6 +50,65 @@
             width: 34px; height: 34px; object-fit: cover;
             border-radius: 50%; border: 2px solid #3b5bdb;
         }
+
+        /* ── Кнопка поддержки (#2) ── */
+        .support-fab {
+            position: fixed; bottom: 24px; right: 24px; z-index: 950;
+            width: 52px; height: 52px; border-radius: 50%;
+            background: linear-gradient(135deg, #3b5bdb, #7048e8);
+            color: #fff; border: none; cursor: pointer;
+            box-shadow: 0 4px 18px rgba(59,91,219,.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; transition: transform .2s, box-shadow .2s;
+        }
+        .support-fab:hover { transform: scale(1.09); box-shadow: 0 6px 24px rgba(59,91,219,.5); }
+
+        /* ── Модал поддержки ── */
+        .support-modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.35); z-index: 10000;
+            align-items: flex-end; justify-content: flex-end;
+            padding: 24px;
+        }
+        .support-modal-overlay.open { display: flex; }
+        .support-hero {
+            background: #fff; border-radius: 22px;
+            padding: 28px 28px 24px;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 12px 48px rgba(0,0,0,.18);
+            animation: heroIn .3s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        @keyframes heroIn {
+            from { opacity:0; transform: translateY(30px) scale(.95); }
+            to   { opacity:1; transform: translateY(0) scale(1); }
+        }
+        .support-hero h5 {
+            font-size: 1.1rem; font-weight: 800; color: #1a1a2e; margin-bottom: 4px;
+        }
+        .support-hero .sub { font-size: .82rem; color: #94a3b8; margin-bottom: 18px; }
+        .support-hero select, .support-hero textarea {
+            width: 100%; border: 1.5px solid #e5e7eb; border-radius: 12px;
+            padding: 10px 14px; font-size: .9rem; outline: none;
+            transition: border-color .2s; font-family: inherit;
+        }
+        .support-hero select:focus, .support-hero textarea:focus { border-color: #3b5bdb; }
+        .support-hero textarea { resize: vertical; min-height: 100px; margin-top: 10px; }
+        .support-submit-btn {
+            width: 100%; margin-top: 14px; padding: 12px;
+            background: linear-gradient(135deg, #3b5bdb, #7048e8);
+            color: #fff; border: none; border-radius: 50px;
+            font-size: .95rem; font-weight: 700; cursor: pointer;
+            transition: opacity .2s; letter-spacing: .02em;
+        }
+        .support-submit-btn:hover { opacity: .9; }
+        .support-close-btn {
+            position: absolute; top: 14px; right: 14px;
+            width: 30px; height: 30px; border-radius: 50%;
+            border: none; background: #f3f4f6; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .9rem; color: #94a3b8; transition: background .2s;
+        }
+        .support-close-btn:hover { background: #e5e7eb; color: #374151; }
 
         #menuToggle {
             display: block; position: fixed; top: 14px; left: 20px;
@@ -123,7 +188,7 @@
         @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
 
         #toast-container {
-            position: fixed; bottom: 24px; right: 24px;
+            position: fixed; bottom: 90px; right: 24px;
             z-index: 9999; display: flex; flex-direction: column;
             gap: 10px; max-width: 340px;
         }
@@ -148,7 +213,16 @@
 
     <!-- Топ-бар -->
     <div class="top-navbar">
-        <span class="page-section-title" id="pageSectionTitle"></span>
+        <!-- Пустой левый якорь (гамбургер снаружи через fixed) -->
+        <div style="width:60px;"></div>
+
+        <!-- Название проекта (#3) -->
+        <span class="navbar-brand-title">
+            <span>📚</span>
+            <span class="brand-book">Book</span><span class="brand-cross">Crossing</span>
+        </span>
+
+        <!-- Правая часть: колокол + аватар -->
         <div class="d-flex align-items-center gap-2" sec:authorize="isAuthenticated()">
             <a href="/notifications" class="bell-btn" title="Уведомления">
                 <i class="fas fa-bell"></i>
@@ -262,6 +336,14 @@
                         <i class="fas fa-cog menu-icon"></i>Панель администратора
                     </a>
                 </li>
+                <!-- Ссылка на обращения — только для ADMIN (#2) -->
+                <li th:if="${currentUser != null && currentUser.admin}">
+                    <a th:href="@{/support/admin}"
+                       th:classappend="${currentUri != null && currentUri.startsWith('/support')} ? 'menu-active' : ''"
+                       style="background:#f0fdf4 !important; color:#15803d !important;">
+                        <i class="fas fa-headset menu-icon" style="color:#15803d !important;"></i>Обращения
+                    </a>
+                </li>
                 <li><hr class="menu-sep"></li>
                 <li>
                     <form th:action="@{/logout}" method="post" style="margin:0;">
@@ -273,6 +355,40 @@
             </ul>
         </div>
     </nav>
+
+    <!-- ── Кнопка «Написать в поддержку» (#2) ── -->
+    <button class="support-fab" onclick="openSupport()" title="Написать в поддержку"
+            sec:authorize="isAuthenticated()">
+        <i class="fas fa-headset"></i>
+    </button>
+
+    <!-- Модал поддержки -->
+    <div class="support-modal-overlay" id="supportOverlay" onclick="closeSupportIfOutside(event)">
+        <div class="support-hero" style="position:relative;">
+            <button class="support-close-btn" onclick="closeSupport()">✕</button>
+            <h5>📩 Написать в поддержку</h5>
+            <div class="sub">Ваше обращение получит администратор</div>
+
+            <!-- Flash success/error из формы поддержки -->
+            <div id="supportSuccessMsg" style="display:none;"
+                 class="alert alert-success rounded-3 mb-2 py-2 px-3 small"></div>
+
+            <form th:action="@{/support/submit}" method="post" id="supportForm">
+                <select name="type">
+                    <option value="SUGGESTION">💡 Пожелание</option>
+                    <option value="COMPLAINT">😤 Жалоба</option>
+                    <option value="BUG">🐛 Ошибка в системе</option>
+                    <option value="QUESTION">❓ Вопрос</option>
+                    <option value="OTHER">📝 Другое</option>
+                </select>
+                <textarea name="message" placeholder="Опишите ваше обращение..."
+                          required maxlength="2000"></textarea>
+                <button type="submit" class="support-submit-btn">
+                    <i class="fas fa-paper-plane me-2"></i>Отправить
+                </button>
+            </form>
+        </div>
+    </div>
 
     <audio id="notificationSound" preload="auto">
         <source src="/sounds/notify.mp3" type="audio/mpeg">
@@ -293,10 +409,10 @@
                 '/notifications': 'Уведомления',
                 '/reviews/add':   'Написать отзыв',
                 '/admin':         '🛡️ Панель администратора',
-                '/moderator':     '🛡️ Панель модератора'
+                '/moderator':     '🛡️ Панель модератора',
+                '/support/admin': '📩 Обращения в поддержку'
             };
-            var el = document.getElementById('pageSectionTitle');
-            if (el) el.textContent = MAP[window.location.pathname] || document.title;
+            // Название проекта в центре navbar убрано из MAP — теперь постоянный бренд
         })();
 
         var menuCheckbox = document.getElementById('menuCheckbox');
@@ -311,7 +427,20 @@
         function closeMenu(){
             menuCheckbox.checked = false; overlay.style.display = 'none';
         }
-        document.addEventListener('keydown', function(e){ if (e.key==='Escape') closeMenu(); });
+        document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeMenu(); closeSupport(); } });
+
+        /* ── Поддержка (#2) ── */
+        function openSupport()  { document.getElementById('supportOverlay').classList.add('open'); }
+        function closeSupport() { document.getElementById('supportOverlay').classList.remove('open'); }
+        function closeSupportIfOutside(e) {
+            if (e.target === document.getElementById('supportOverlay')) closeSupport();
+        }
+
+        // Показываем flash success после редиректа
+        (function(){
+            var params = new URLSearchParams(window.location.search);
+            // Обработано через RedirectAttributes → th:if в страницах
+        })();
 
         /* ── WebSocket ── */
         window.globalStompClient = null;
@@ -374,15 +503,12 @@
             el.textContent=n; el.style.display=n>0?'inline-block':'none';
         }
 
-        /* ── Сброс счётчика уведомлений при открытии страницы /notifications ── */
         if(window.location.pathname==='/notifications'){
             ['bell-badge','menu-notif-badge'].forEach(function(id){
                 var el=document.getElementById(id);
                 if(el){el.textContent='0';el.style.display='none';}
             });
         }
-
-        /* ── Сброс счётчика сообщений при открытии страницы /messages ── */
         if(window.location.pathname==='/messages'){
             var msgEl=document.getElementById('menu-msg-badge');
             if(msgEl){msgEl.textContent='0';msgEl.style.display='none';}

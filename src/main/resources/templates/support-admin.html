@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Обращения в поддержку')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<style>
+    .support-wrap { max-width: 960px; margin: 30px auto; padding: 0 16px 60px; }
+    .support-card {
+        background: #fff; border-radius: 18px; border: 1.5px solid #f1f5f9;
+        box-shadow: 0 2px 12px rgba(0,0,0,.05); margin-bottom: 16px; overflow: hidden;
+    }
+    .support-card-header {
+        padding: 14px 20px; border-bottom: 1px solid #f3f4f6;
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .support-card-body { padding: 16px 20px; }
+    .type-badge {
+        font-size: .72rem; font-weight: 700; padding: 3px 10px;
+        border-radius: 50px; white-space: nowrap;
+    }
+    .status-NEW       { background: #fee2e2; color: #dc2626; }
+    .status-IN_PROGRESS { background: #fef3c7; color: #92400e; }
+    .status-RESOLVED  { background: #dcfce7; color: #15803d; }
+    .msg-text {
+        background: #f8fafc; border-radius: 10px; padding: 12px 14px;
+        font-size: .9rem; color: #374151; line-height: 1.6; white-space: pre-wrap;
+    }
+    .reply-form { margin-top: 12px; }
+    .reply-form textarea {
+        width: 100%; border-radius: 10px; border: 1.5px solid #e5e7eb;
+        padding: 10px 14px; font-size: .88rem; resize: vertical; min-height: 70px;
+        outline: none; transition: border-color .2s;
+    }
+    .reply-form textarea:focus { border-color: #3b5bdb; }
+    .stat-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+    .stat-pill {
+        padding: 6px 18px; border-radius: 50px; font-size: .82rem; font-weight: 600;
+        border: 1.5px solid #e5e7eb; background: #fff; color: #374151;
+    }
+    .stat-pill.red { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+</style>
+
+<div class="support-wrap">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div style="width:46px;height:46px;background:linear-gradient(135deg,#3b5bdb,#7048e8);
+         border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;">
+            📩
+        </div>
+        <div>
+            <h1 style="font-size:1.4rem;font-weight:800;color:#1a1a2e;margin:0;">Обращения в поддержку</h1>
+            <div class="text-muted small">Пожелания, жалобы и вопросы от пользователей</div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stat-pills">
+        <div class="stat-pill">Всего: <strong th:text="${#lists.size(supportMessages)}">0</strong></div>
+        <div class="stat-pill red">Новых: <strong th:text="${newCount}">0</strong></div>
+    </div>
+
+    <!-- Flash messages -->
+    <div th:if="${success}" class="alert alert-success rounded-4 mb-3" th:text="${success}"></div>
+    <div th:if="${error}"   class="alert alert-danger rounded-4 mb-3"  th:text="${error}"></div>
+
+    <!-- Пустое состояние -->
+    <div th:if="${#lists.isEmpty(supportMessages)}"
+         class="text-center py-5 support-card">
+        <div style="font-size:3rem;">📭</div>
+        <p class="text-muted mt-2">Обращений пока нет</p>
+    </div>
+
+    <!-- Список обращений -->
+    <div th:each="sm : ${supportMessages}" class="support-card">
+        <div class="support-card-header">
+            <img th:src="${sm.author != null ? sm.author.avatarDisplay : '/images/usual_avatar.png'}"
+                 width="36" height="36"
+                 style="border-radius:50%;object-fit:cover;flex-shrink:0;" alt="avatar">
+            <div class="flex-grow-1">
+                <strong class="small" th:text="${sm.author != null ? '@' + sm.author.username : 'Аноним'}">user</strong>
+                <div class="text-muted" style="font-size:.75rem;"
+                     th:text="${#temporals.format(sm.createdAt, 'dd.MM.yyyy HH:mm')}">date</div>
+            </div>
+            <span class="type-badge bg-light text-secondary border" th:text="${sm.type.displayName}">тип</span>
+            <span class="type-badge"
+                  th:classappend="'status-' + ${sm.status.name()}"
+                  th:text="${sm.status.displayName}">статус</span>
+        </div>
+
+        <div class="support-card-body">
+            <div class="msg-text" th:text="${sm.message}">текст</div>
+
+            <!-- Ответ администратора (если есть) -->
+            <div th:if="${sm.adminReply != null}" class="mt-3 p-3 rounded-3"
+                 style="background:#f0f3ff;border:1px solid #c7d2fe;">
+                <div class="small fw-semibold text-primary mb-1">💬 Ответ администратора:</div>
+                <div class="small text-secondary" style="white-space:pre-wrap;" th:text="${sm.adminReply}"></div>
+            </div>
+
+            <!-- Форма ответа -->
+            <form th:action="@{/support/{id}/reply(id=${sm.id})}" method="post" class="reply-form">
+        <textarea name="adminReply" placeholder="Ответить пользователю (необязательно)..."
+                  th:text="${sm.adminReply}"></textarea>
+                <div class="d-flex gap-2 mt-2 align-items-center flex-wrap">
+                    <select name="status" class="form-select form-select-sm rounded-pill"
+                            style="width:auto;">
+                        <option th:each="s : ${statuses}"
+                                th:value="${s.name()}"
+                                th:text="${s.displayName}"
+                                th:selected="${sm.status == s}"></option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
+                        <i class="fas fa-check me-1"></i>Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
